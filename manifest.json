@@ -1,9 +1,9 @@
 {
   "name": "KinetoTrack – Cabinet Fizioterapie",
   "short_name": "KinetoTrack",
-  "description": "Sistem de înregistrare și urmărire pacienți fizioterapie",
-  "start_url": "./",
-  "scope": "./",
+  "description": "Sistem de inregistrare si urmarire pacienti fizioterapie",
+  "start_url": "/kinetotrack/index.html",
+  "scope": "/kinetotrack/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#EEF5FB",
