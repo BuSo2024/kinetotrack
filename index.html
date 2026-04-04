@@ -10,8 +10,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="KinetoTrack">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-<meta name="theme-color" content="#B8D8F0">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -1873,11 +1871,15 @@ function vasToColor(v){if(v==null||v==='') return 'var(--text-muted)';v=parseInt
 // INIT
 // ═══════════════════════════════════════════
 // Înregistrare Service Worker (PWA)
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./sw.js");
-      });
-    }
-    </script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/kinetotrack/sw.js')
+      .then(() => console.log('SW înregistrat'))
+      .catch(err => console.warn('SW error:', err));
+  });
+}
+
+onDBReady(() => showView('dashboard'));
+</script>
 </body>
 </html>
