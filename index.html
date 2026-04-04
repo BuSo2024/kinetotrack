@@ -1,0 +1,1885 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KinetoTrack — Cabinet Fizioterapie</title>
+<meta name="theme-color" content="#B8D8F0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="KinetoTrack">
+<link rel="manifest" href="manifest.json">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#EEF5FB; --surface:#F7FAFD; --surface2:#DDE9F4; --border:#C2D8EC;
+  --text:#152232; --text-muted:#5A7A96;
+  --accent:#1A6FA8; --accent-light:#2A90D4; --accent-bg:#DCF0FF;
+  --warn:#C0522A; --warn-bg:#FBF0EA; --warn-border:#F0C4A8;
+  --danger:#B02020; --danger-bg:#FDECEC; --danger-border:#F0AAAA;
+  --info:#1A5C8A; --info-bg:#D8EEFA; --info-border:#90C4E8;
+  --gdpr:#7A3A9A; --gdpr-bg:#F5EEFF; --gdpr-border:#C8A0E8;
+  --tag-activ:#1A6FA8; --tag-pauza:#7A5A14; --tag-terminat:#3D5A3D; --tag-intrerupt:#8A3A1A;
+  --radius:12px; --radius-sm:8px;
+  --shadow:0 2px 12px rgba(26,80,130,0.09); --shadow-lg:0 8px 32px rgba(26,80,130,0.14);
+  --sidebar-bg:#B8D8F0; --sidebar-border:#8FBDDE;
+  --sidebar-text:#0D2D45; --sidebar-muted:#456880;
+  --sidebar-active-bg:rgba(255,255,255,0.55); --sidebar-hover-bg:rgba(255,255,255,0.3);
+  --sidebar-accent:#0D4F80;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px}
+.app{display:flex;min-height:100vh}
+
+/* ── SIDEBAR ── */
+.sidebar{width:220px;background:var(--sidebar-bg);border-right:1px solid var(--sidebar-border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;transition:transform .3s ease}
+.sidebar-logo{padding:22px 20px 16px;border-bottom:1px solid var(--sidebar-border)}
+.sidebar-logo .brand{font-family:'DM Serif Display',serif;font-size:20px;color:var(--sidebar-accent);line-height:1.15;letter-spacing:-.3px}
+.sidebar-logo .sub{font-size:11px;color:var(--sidebar-muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:3px}
+.sidebar-nav{padding:10px 0;flex:1;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;border-left:3px solid transparent;transition:all .15s;font-size:14px;font-weight:400;color:var(--sidebar-muted)}
+.nav-item:hover{background:var(--sidebar-hover-bg);color:var(--sidebar-text)}
+.nav-item.active{background:var(--sidebar-active-bg);border-left-color:var(--sidebar-accent);color:var(--sidebar-accent);font-weight:600}
+.nav-item.disabled{opacity:.38;pointer-events:none}
+.nav-icon{font-size:15px;width:20px;text-align:center}
+.sidebar-footer{padding:13px 20px;border-top:1px solid var(--sidebar-border);font-size:11px;color:var(--sidebar-muted)}
+
+/* ── MAIN ── */
+.main{margin-left:220px;flex:1;display:flex;flex-direction:column;min-height:100vh}
+
+/* ── TOPBAR ── */
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:11px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.topbar-title{font-family:'DM Serif Display',serif;font-size:19px;color:var(--text)}
+.topbar-actions{display:flex;gap:8px;align-items:center}
+.search-box{display:flex;align-items:center;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 12px;gap:8px;width:220px;transition:border-color .15s}
+.search-box:focus-within{border-color:var(--accent)}
+.search-box input{border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);outline:none;width:100%}
+.search-box input::placeholder{color:var(--text-muted)}
+.topbar-divider{width:1px;height:28px;background:var(--border);margin:0 2px}
+
+/* ── CONTENT ── */
+.content{padding:24px;flex:1}
+
+/* ── STATS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;display:flex;flex-direction:column;gap:5px;transition:box-shadow .2s}
+.stat-card:hover{box-shadow:var(--shadow)}
+.stat-label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:500}
+.stat-value{font-family:'DM Serif Display',serif;font-size:30px;color:var(--text);line-height:1}
+.stat-sub{font-size:12px;color:var(--text-muted)}
+.stat-card.accent{background:var(--accent);border-color:var(--accent)}
+.stat-card.accent .stat-label{color:rgba(220,240,255,.65)}
+.stat-card.accent .stat-value,.stat-card.accent .stat-sub{color:#EEF5FB}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:8px 15px;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .15s;white-space:nowrap}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent-light)}
+.btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{background:var(--surface2)}
+.btn-danger{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger-border)}
+.btn-danger:hover{background:#fad8d8}
+.btn-warn{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn-border)}
+.btn-warn:hover{background:#f5d5c0}
+.btn-info{background:var(--info-bg);color:var(--info);border:1px solid var(--info-border)}
+.btn-info:hover{background:#c4dff5}
+.btn-ghost{background:none;color:var(--text-muted);border:1px solid transparent;padding:7px 10px}
+.btn-ghost:hover{background:var(--surface2);color:var(--text);border-color:var(--border)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-xs{padding:3px 8px;font-size:11px}
+
+/* ── SECTION HEADER ── */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:15px}
+.section-title{font-family:'DM Serif Display',serif;font-size:18px}
+
+/* ── TABLE ── */
+.patient-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.filter-bar{padding:10px 15px;border-bottom:1px solid var(--border);display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.filter-chip{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text-muted);transition:all .15s;font-family:'DM Sans',sans-serif}
+.filter-chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.filter-chip:hover:not(.active){background:var(--surface2);color:var(--text)}
+table{width:100%;border-collapse:collapse}
+thead{background:var(--bg)}
+th{padding:9px 15px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);border-bottom:1px solid var(--border)}
+td{padding:11px 15px;border-bottom:1px solid var(--border);font-size:14px;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tbody tr{transition:background .1s;cursor:pointer}
+tbody tr:hover{background:var(--bg)}
+.patient-name{font-weight:600}
+.patient-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
+.row-actions{display:flex;gap:5px;opacity:0;transition:opacity .15s}
+tbody tr:hover .row-actions{opacity:1}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-activ{background:var(--accent-bg);color:var(--tag-activ)}
+.badge-pauza{background:#FDF6E3;color:var(--tag-pauza)}
+.badge-terminat{background:#E8F5E8;color:var(--tag-terminat)}
+.badge-intrerupt{background:#FDF0EA;color:var(--tag-intrerupt)}
+.badge-gdpr-warn{background:var(--gdpr-bg);color:var(--gdpr);border:1px solid var(--gdpr-border);cursor:pointer;transition:opacity .15s}
+.badge-gdpr-warn:hover{opacity:.75}
+.mono{font-family:'JetBrains Mono',monospace;font-size:12px}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(15,30,50,.55);z-index:200;display:flex;align-items:flex-start;justify-content:center;padding:32px 16px;overflow-y:auto;backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--surface);border-radius:var(--radius);width:100%;max-width:700px;box-shadow:var(--shadow-lg);transform:translateY(18px);transition:transform .2s;border:1px solid var(--border)}
+.modal-overlay.open .modal{transform:translateY(0)}
+.modal-wide{max-width:860px}
+.modal-sm{max-width:440px}
+.modal-header{padding:18px 24px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-family:'DM Serif Display',serif;font-size:20px}
+.modal-close{background:none;border:none;cursor:pointer;font-size:19px;color:var(--text-muted);width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:6px;transition:background .15s}
+.modal-close:hover{background:var(--surface2)}
+.modal-body{padding:20px 24px;max-height:72vh;overflow-y:auto}
+.modal-footer{padding:13px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:9px;align-items:center}
+
+/* ── FORM ── */
+.form-section{margin-bottom:20px}
+.form-section-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--accent-bg)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-grid.cols-3{grid-template-columns:1fr 1fr 1fr}
+.form-grid.cols-1{grid-template-columns:1fr}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group.full{grid-column:1/-1}
+label{font-size:12px;font-weight:500;color:var(--text-muted);letter-spacing:.3px}
+input,select,textarea{font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;outline:none;transition:border-color .15s;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);background:var(--surface)}
+textarea{resize:vertical;min-height:70px}
+.checkbox-group{display:flex;flex-wrap:wrap;gap:7px;margin-top:4px}
+.checkbox-pill{display:flex;align-items:center;gap:6px;padding:5px 12px;border:1px solid var(--border);border-radius:20px;cursor:pointer;font-size:13px;transition:all .15s;user-select:none}
+.checkbox-pill input{display:none}
+.checkbox-pill:hover{background:var(--surface2)}
+.checkbox-pill.checked{background:var(--accent-bg);border-color:var(--accent);color:var(--accent);font-weight:500}
+
+/* ── GDPR CHECKBOX ── */
+.gdpr-block{background:var(--gdpr-bg);border:1px solid var(--gdpr-border);border-radius:var(--radius-sm);padding:14px 16px;display:flex;gap:12px;align-items:flex-start}
+.gdpr-block input[type=checkbox]{width:18px;height:18px;accent-color:var(--gdpr);cursor:pointer;flex-shrink:0;margin-top:2px}
+.gdpr-block .gdpr-text{font-size:13px;line-height:1.5;color:var(--text)}
+.gdpr-block .gdpr-text strong{color:var(--gdpr)}
+.gdpr-missing{background:var(--gdpr-bg);border:1.5px dashed var(--gdpr-border);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:var(--gdpr);display:flex;gap:8px;align-items:center}
+
+/* ── BOXES ── */
+.warn-box{background:var(--warn-bg);border:1px solid var(--warn-border);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:var(--warn);display:flex;gap:8px;align-items:flex-start}
+.danger-box{background:var(--danger-bg);border:1px solid var(--danger-border);border-radius:var(--radius-sm);padding:12px 16px;font-size:13px;color:var(--danger)}
+.info-box{background:var(--info-bg);border:1px solid var(--info-border);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:var(--info);display:flex;gap:8px}
+
+/* ── DELETE CONFIRM ── */
+.delete-name{font-family:'DM Serif Display',serif;font-size:20px;color:var(--danger);margin:8px 0 4px}
+.delete-confirm-input{border-color:var(--danger-border)!important}
+.delete-confirm-input:focus{border-color:var(--danger)!important}
+
+/* ── DETAIL VIEW ── */
+.detail-header{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 22px;margin-bottom:16px;display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.detail-avatar{width:48px;height:48px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:19px;color:#fff;flex-shrink:0}
+.detail-name{font-family:'DM Serif Display',serif;font-size:21px;margin-bottom:4px}
+.detail-meta{font-size:13px;color:var(--text-muted);display:flex;gap:12px;flex-wrap:wrap}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.info-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:15px 17px}
+.info-card-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:9px}
+.info-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--surface2);font-size:13px}
+.info-row:last-child{border-bottom:none}
+.info-row .lbl{color:var(--text-muted)}
+.info-row .val{font-weight:500;text-align:right;max-width:58%}
+
+/* ── TABS ── */
+.tab-bar{display:flex;border-bottom:2px solid var(--border);margin-bottom:18px}
+.tab-btn{padding:9px 17px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:none;color:var(--text-muted);border-bottom:2px solid transparent;margin-bottom:-2px;font-family:'DM Sans',sans-serif;transition:all .15s}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+
+/* ── SEDINTE ── */
+.sedinta-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:11px;overflow:hidden;transition:box-shadow .15s}
+.sedinta-card:hover{box-shadow:var(--shadow)}
+.sedinta-header{padding:12px 17px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:10px}
+.sedinta-nr{font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--accent-bg);color:var(--accent);padding:2px 8px;border-radius:4px;font-weight:600;flex-shrink:0}
+.sedinta-date{font-size:13px;font-weight:600;flex:1}
+.sedinta-preview{font-size:12px;color:var(--text-muted);flex:2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sedinta-vas{display:flex;align-items:center;gap:5px;font-size:13px;font-weight:600}
+.vas-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.sedinta-body{padding:0 17px 15px;display:none;border-top:1px solid var(--border)}
+.sedinta-body.open{display:block;padding-top:13px}
+.sedinta-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.sedinta-field label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);display:block;margin-bottom:4px}
+.sedinta-field p{font-size:13px;line-height:1.5}
+
+/* ── VAS SLIDER ── */
+.vas-slider-wrap{display:flex;align-items:center;gap:12px}
+.vas-slider-wrap input[type=range]{flex:1;accent-color:var(--accent)}
+.vas-value-badge{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;min-width:28px;text-align:center}
+
+/* ── EVALUARE ── */
+.eval-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:13px;overflow:hidden}
+.eval-section-header{padding:12px 17px;font-size:13px;font-weight:600;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.eval-section-body{padding:15px 17px}
+.rom-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.rom-item{display:flex;flex-direction:column;gap:4px}
+.rom-item label{font-size:11px;color:var(--text-muted);font-weight:500}
+.rom-item input{padding:7px 10px;font-size:13px}
+
+/* ── PROGRES CHART ── */
+.chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:17px;margin-bottom:16px}
+.chart-title{font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:11px;text-transform:uppercase;letter-spacing:.8px}
+
+/* ── TOAST ── */
+.toast-wrap{position:fixed;bottom:22px;right:22px;z-index:9999;display:flex;flex-direction:column;gap:7px;pointer-events:none}
+.toast{display:flex;align-items:center;gap:9px;padding:11px 16px;border-radius:var(--radius-sm);font-size:13px;box-shadow:var(--shadow-lg);animation:toastIn .22s ease;pointer-events:none;max-width:320px;border-left:4px solid transparent}
+.toast-success{background:#E8F5EE;color:#1A5A2A;border-left-color:#2D8A4A}
+.toast-warn{background:var(--warn-bg);color:var(--warn);border-left-color:var(--warn)}
+.toast-error{background:var(--danger-bg);color:var(--danger);border-left-color:var(--danger)}
+.toast-info{background:var(--info-bg);color:var(--info);border-left-color:var(--info)}
+@keyframes toastIn{from{transform:translateX(40px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* ── MISC ── */
+.empty-state{text-align:center;padding:48px 20px;color:var(--text-muted)}
+.empty-state .icon{font-size:34px;margin-bottom:10px}
+.no-results{text-align:center;padding:34px;color:var(--text-muted);font-size:14px}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:99}
+.sidebar-overlay.open{display:block}
+.mobile-menu-btn{display:none;background:none;border:none;font-size:22px;cursor:pointer;color:var(--text);padding:4px}
+.coming-soon{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;text-align:center}
+.coming-soon .icon{font-size:44px;margin-bottom:13px}
+.coming-soon h2{font-family:'DM Serif Display',serif;font-size:22px;margin-bottom:7px}
+.coming-soon p{color:var(--text-muted);font-size:14px;max-width:300px}
+.divider{border:none;border-top:1px solid var(--border);margin:18px 0}
+.text-danger{color:var(--danger)}
+
+/* ── MOBILE ── */
+/* ── EXERCITII ── */
+.ex-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:13px;margin-top:4px}
+.ex-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;display:flex;flex-direction:column;gap:8px;transition:box-shadow .15s;position:relative}
+.ex-card:hover{box-shadow:var(--shadow)}
+.ex-card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.ex-name{font-weight:600;font-size:14px;line-height:1.3}
+.ex-tags{display:flex;gap:5px;flex-wrap:wrap}
+.ex-tag{padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.ex-tag-zona{background:var(--accent-bg);color:var(--accent)}
+.ex-tag-tip{background:#EEF5E8;color:#3A6A1A}
+.ex-desc{font-size:13px;color:var(--text-muted);line-height:1.5}
+.ex-dozaj{font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--info);background:var(--info-bg);padding:4px 9px;border-radius:6px;display:inline-block}
+.ex-media{margin-top:4px}
+.ex-media a{font-size:12px;color:var(--accent);text-decoration:none;display:flex;align-items:center;gap:4px}
+.ex-media a:hover{text-decoration:underline}
+.ex-predefined{position:absolute;top:10px;right:10px;font-size:10px;background:var(--surface2);color:var(--text-muted);padding:2px 6px;border-radius:4px;font-weight:500}
+.ex-card-actions{display:flex;gap:5px;opacity:0;transition:opacity .15s;margin-top:4px}
+.ex-card:hover .ex-card-actions{opacity:1}
+.ex-filter-bar{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+
+/* ── CALENDAR ── */
+.cal-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.cal-header{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--bg)}
+.cal-nav{display:flex;align-items:center;gap:10px}
+.cal-week-title{font-family:'DM Serif Display',serif;font-size:16px;min-width:200px;text-align:center}
+.cal-grid{display:grid;grid-template-columns:60px repeat(7,1fr);border-bottom:1px solid var(--border)}
+.cal-day-header{padding:8px 6px;text-align:center;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted);border-right:1px solid var(--border);background:var(--bg)}
+.cal-day-header.today{color:var(--accent);font-weight:700}
+.cal-day-header:last-child{border-right:none}
+.cal-time-col{font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;text-align:right;padding:0 8px;border-right:1px solid var(--border)}
+.cal-body{display:grid;grid-template-columns:60px repeat(7,1fr)}
+.cal-hour-row{display:contents}
+.cal-time-cell{padding:6px 8px 6px 0;font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;text-align:right;border-right:1px solid var(--border);border-bottom:1px solid var(--surface2);vertical-align:top;line-height:28px}
+.cal-cell{border-right:1px solid var(--border);border-bottom:1px solid var(--surface2);min-height:32px;padding:2px 3px;cursor:pointer;transition:background .1s;position:relative}
+.cal-cell:hover{background:var(--accent-bg)}
+.cal-cell:last-child{border-right:none}
+.cal-cell.today-col{background:rgba(26,111,168,0.03)}
+.prog-chip{border-radius:5px;padding:2px 6px;font-size:11px;font-weight:500;margin-bottom:2px;cursor:pointer;line-height:1.4;display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;transition:opacity .15s}
+.prog-chip:hover{opacity:.8}
+.prog-chip.status-programat{background:var(--accent-bg);color:var(--accent)}
+.prog-chip.status-confirmat{background:#E0F5E8;color:#1A7A3A}
+.prog-chip.status-anulat{background:#F0F0F0;color:#888;text-decoration:line-through}
+.prog-chip.status-efectuat{background:#E8F0FF;color:#2A4A9A}
+.cal-legend{display:flex;gap:14px;flex-wrap:wrap;padding:10px 18px;border-top:1px solid var(--border);font-size:12px}
+.cal-legend-item{display:flex;align-items:center;gap:5px}
+.cal-legend-dot{width:10px;height:10px;border-radius:3px}
+
+@media(max-width:768px){
+  .ex-grid{grid-template-columns:1fr}
+  .cal-grid,.cal-body{grid-template-columns:40px repeat(7,1fr)}
+  .cal-week-title{font-size:13px;min-width:140px}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .form-grid,.form-grid.cols-3,.sedinta-grid,.rom-grid{grid-template-columns:1fr 1fr}
+  .info-grid{grid-template-columns:1fr}
+  .search-box{width:160px}
+  .content{padding:13px}
+  .topbar{padding:10px 13px}
+  th:nth-child(3),td:nth-child(3),th:nth-child(4),td:nth-child(4){display:none}
+  .modal-overlay{padding:14px 7px}
+  .topbar-divider{display:none}
+}
+@media(max-width:600px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0}
+  .mobile-menu-btn{display:block}
+}
+@media(max-width:480px){
+  .stats-grid{grid-template-columns:1fr 1fr;gap:9px}
+  .stat-value{font-size:26px}
+  .search-box{display:none}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ══ SIDEBAR ══ -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">KinetoTrack</div>
+    <div class="sub">Cabinet Fizioterapie</div>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-item" id="nav-dashboard" onclick="showView('dashboard')"><span class="nav-icon">⊞</span> Dashboard</div>
+    <div class="nav-item" id="nav-pacienti" onclick="showView('pacienti')"><span class="nav-icon">👥</span> Pacienți</div>
+    <div class="nav-item" id="nav-evaluare" onclick="showView('evaluare')"><span class="nav-icon">📊</span> Evaluare</div>
+    <div class="nav-item" id="nav-sedinte" onclick="showView('sedinte')"><span class="nav-icon">📋</span> Ședințe</div>
+    <div class="nav-item" id="nav-exercitii" onclick="showView('exercitii')"><span class="nav-icon">🏃</span> Exerciții</div>
+    <div class="nav-item" id="nav-programari" onclick="showView('programari')"><span class="nav-icon">📅</span> Programări</div>
+  </div>
+  <div class="sidebar-footer">
+    <div id="syncStatus" style="font-weight:500">⏳ Se conectează...</div>
+    <div style="margin-top:3px">v5 · Firebase Sync</div>
+  </div>
+</nav>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<!-- ══ MAIN ══ -->
+<div class="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:11px">
+      <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+      <div class="topbar-title" id="topbarTitle">Dashboard</div>
+    </div>
+    <div class="topbar-actions">
+      <div class="search-box">
+        <span style="color:var(--text-muted);font-size:13px">🔍</span>
+        <input type="text" placeholder="Caută pacient..." id="globalSearch" oninput="onGlobalSearch(this.value)">
+      </div>
+      <div class="topbar-divider"></div>
+      <button class="btn btn-ghost btn-sm" onclick="exportJSON()" title="Export backup JSON">⬇ Export</button>
+      <label class="btn btn-ghost btn-sm" style="cursor:pointer" title="Import backup JSON">⬆ Import<input type="file" accept=".json" style="display:none" onchange="importJSON(event)"></label>
+      <div class="topbar-divider"></div>
+      <button class="btn btn-primary btn-sm" onclick="openNewPatient()">+ Pacient nou</button>
+    </div>
+  </div>
+  <div class="content" id="mainContent">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:16px;color:var(--text-muted)">
+      <div style="font-size:36px">☁️</div>
+      <div style="font-family:'DM Serif Display',serif;font-size:18px;color:var(--text)">Se conectează la Firebase...</div>
+      <div style="font-size:13px">Sincronizare date în curs</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ MODAL: PACIENT ══ -->
+<div class="modal-overlay" id="patientModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">Pacient nou</div>
+      <button class="modal-close" onclick="closeModal('patientModal')">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('patientModal')">Anulează</button>
+      <button class="btn btn-primary" onclick="savePatient()">Salvează pacient</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: GDPR AVERTIZARE ══ -->
+<div class="modal-overlay" id="gdprWarnModal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <div class="modal-title" style="color:var(--gdpr)">⚠️ Lipsă consimțământ GDPR</div>
+      <button class="modal-close" onclick="closeModal('gdprWarnModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="gdpr-missing" style="margin-bottom:14px">
+        🔒 Pacientul <strong id="gdprWarnName"></strong> nu are consimțământul GDPR bifat.
+      </div>
+      <p style="font-size:14px;color:var(--text-muted);line-height:1.6">Prelucrarea datelor personale fără consimțământ explicit poate încălca <strong>Regulamentul GDPR (UE) 2016/679</strong>. Recomandăm corectarea înainte de a continua.</p>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <button class="btn btn-secondary" onclick="gdprContinueAnyway()">Continuă oricum</button>
+      <button class="btn btn-primary" style="background:var(--gdpr);border-color:var(--gdpr)" onclick="gdprGoCorrect()">✏️ Corectează acum</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: SEDINTA ══ -->
+<div class="modal-overlay" id="sedinteModal">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <div class="modal-title" id="sedinteModalTitle">Ședință nouă</div>
+      <button class="modal-close" onclick="closeModal('sedinteModal')">✕</button>
+    </div>
+    <div class="modal-body" id="sedinteModalBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('sedinteModal')">Anulează</button>
+      <button class="btn btn-primary" onclick="saveSedinta()">Salvează ședința</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: EVALUARE ══ -->
+<div class="modal-overlay" id="evaluareModal">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <div class="modal-title" id="evaluareModalTitle">Evaluare inițială</div>
+      <button class="modal-close" onclick="closeModal('evaluareModal')">✕</button>
+    </div>
+    <div class="modal-body" id="evaluareModalBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('evaluareModal')">Anulează</button>
+      <button class="btn btn-primary" onclick="saveEvaluare()">Salvează evaluarea</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: DELETE CONFIRM ══ -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <div class="modal-title text-danger">🗑 Ștergere pacient</div>
+      <button class="modal-close" onclick="closeModal('confirmModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px;color:var(--text-muted)">Urmează să ștergi definitiv pacientul:</p>
+      <div class="delete-name" id="confirmDeleteName"></div>
+      <div class="danger-box" style="margin:12px 0">
+        ⚠️ <strong>Atenție:</strong> Vor fi șterse permanent toate datele, ședințele și evaluările acestui pacient. Această acțiune <strong>nu poate fi anulată</strong>.
+      </div>
+      <div class="form-group">
+        <label>Confirmă scriind numele pacientului:</label>
+        <input type="text" id="deleteConfirmInput" class="delete-confirm-input" placeholder="Scrie numele exact...">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('confirmModal')">Anulează</button>
+      <button class="btn btn-danger" onclick="confirmDelete()" id="confirmDeleteBtn" disabled>Șterge definitiv</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: EXERCITIU ══ -->
+<div class="modal-overlay" id="exercitiuModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="exercitiuModalTitle">Exercițiu nou</div>
+      <button class="modal-close" onclick="closeModal('exercitiuModal')">✕</button>
+    </div>
+    <div class="modal-body" id="exercitiuModalBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('exercitiuModal')">Anulează</button>
+      <button class="btn btn-primary" onclick="saveExercitiu()">Salvează exercițiul</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: PROGRAMARE ══ -->
+<div class="modal-overlay" id="programareModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="programareModalTitle">Programare nouă</div>
+      <button class="modal-close" onclick="closeModal('programareModal')">✕</button>
+    </div>
+    <div class="modal-body" id="programareModalBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('programareModal')">Anulează</button>
+      <button class="btn btn-primary" onclick="saveProgramare()">Salvează programarea</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+// ═══════════════════════════════════════════
+// FIREBASE CONFIG
+// ═══════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyApNsePTjqJyhPsPVVH-sJ8U2c75BOjTds",
+  authDomain: "kinetotrack.firebaseapp.com",
+  databaseURL: "https://kinetotrack-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "kinetotrack",
+  storageBucket: "kinetotrack.firebasestorage.app",
+  messagingSenderId: "314197075299",
+  appId: "1:314197075299:web:9db461d2de562528b11f56"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const DB_REF = db.ref('kinetotrack');
+
+// ─── stare locală (cache în memorie) ───
+let _localDB = { patients: [], exercitii: [], programari: [] };
+let _dbReady = false;
+let _onReadyCallbacks = [];
+
+// ─── indicator sincronizare ───
+function setSyncStatus(status) {
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  if (status === 'syncing') { el.textContent = '🔄 Sincronizare...'; el.style.color = 'var(--sidebar-muted)'; }
+  else if (status === 'ok')  { el.textContent = '☁️ Sincronizat';    el.style.color = '#2A8A4A'; }
+  else if (status === 'err') { el.textContent = '⚠️ Offline';        el.style.color = 'var(--warn)'; }
+}
+
+// ─── ascultă modificări în timp real ───
+DB_REF.on('value', snapshot => {
+  const data = snapshot.val();
+  if (data) {
+    _localDB = {
+      patients:   Array.isArray(data.patients)   ? data.patients   : Object.values(data.patients   || {}),
+      exercitii:  Array.isArray(data.exercitii)  ? data.exercitii  : Object.values(data.exercitii  || {}),
+      programari: Array.isArray(data.programari) ? data.programari : Object.values(data.programari || {}),
+    };
+  } else {
+    _localDB = { patients: [], exercitii: [], programari: [] };
+  }
+  setSyncStatus('ok');
+  if (!_dbReady) {
+    _dbReady = true;
+    _onReadyCallbacks.forEach(fn => fn());
+    _onReadyCallbacks = [];
+  } else {
+    // re-render live dacă altcineva a modificat
+    renderView();
+  }
+}, err => {
+  console.error('Firebase error:', err);
+  setSyncStatus('err');
+  toast('⚠️ Nu s-a putut conecta la Firebase — lucrezi offline', 'warn');
+  _dbReady = true;
+  _onReadyCallbacks.forEach(fn => fn());
+  _onReadyCallbacks = [];
+});
+
+function onDBReady(fn) {
+  if (_dbReady) fn(); else _onReadyCallbacks.push(fn);
+}
+
+// ─── scriere în Firebase ───
+function saveDB(data) {
+  setSyncStatus('syncing');
+  DB_REF.set(data)
+    .then(() => setSyncStatus('ok'))
+    .catch(err => { console.error(err); setSyncStatus('err'); toast('❌ Eroare la salvare Firebase','error'); });
+}
+
+// ═══════════════════════════════════════════
+// DB API (compatibil cu codul existent)
+// ═══════════════════════════════════════════
+function loadDB()    { return _localDB; }
+function getPatients() { return _localDB.patients || []; }
+function getPatient(id) { return getPatients().find(p => p.id === id); }
+
+function savePatientDB(p) {
+  const list = getPatients().filter(x => x.id !== p.id);
+  list.push(p);
+  _localDB.patients = list;
+  saveDB({ ..._localDB });
+}
+
+function deletePatientDB(id) {
+  _localDB.patients = getPatients().filter(p => p.id !== id);
+  saveDB({ ..._localDB });
+}
+
+function getCustomExercitii() { return _localDB.exercitii || []; }
+function saveExercitiiDB(list) {
+  _localDB.exercitii = list;
+  saveDB({ ..._localDB });
+}
+
+function getProgramari() { return _localDB.programari || []; }
+function saveProgramariDB(list) {
+  _localDB.programari = list;
+  saveDB({ ..._localDB });
+}
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+// ═══════════════════════════════════════════
+// EXPORT / IMPORT (backup local opțional)
+// ═══════════════════════════════════════════
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(_localDB, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'kinetotrack_backup_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('✅ Backup exportat — ' + getPatients().length + ' pacienți', 'success');
+}
+
+function importJSON(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.patients || !Array.isArray(data.patients)) throw new Error();
+      _localDB = { patients: data.patients, exercitii: data.exercitii||[], programari: data.programari||[] };
+      saveDB({ ..._localDB });
+      toast('✅ Import reușit — ' + data.patients.length + ' pacienți încărcați în cloud', 'success');
+      renderView();
+    } catch { toast('❌ Fișier JSON invalid sau corupt', 'error'); }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let currentView='dashboard';
+let editingId=null;
+let deletingId=null;
+let filterStatus='toti';
+let searchTerm='';
+let editingSedintaId=null;
+let activePatientId=null;
+let pendingSavePatient=null; // pentru GDPR flow
+
+// ═══════════════════════════════════════════
+// ROUTING
+// ═══════════════════════════════════════════
+function showView(view,patientId){
+  currentView=view;
+  if(patientId) activePatientId=patientId;
+  closeSidebar();
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  const navEl=document.getElementById('nav-'+view);
+  if(navEl) navEl.classList.add('active');
+  const titles={dashboard:'Dashboard',pacienti:'Pacienți',evaluare:'Evaluare',sedinte:'Ședințe'};
+  document.getElementById('topbarTitle').textContent=titles[view]||view;
+  renderView();
+}
+function renderView(){
+  const c=document.getElementById('mainContent');
+  if(currentView==='dashboard') c.innerHTML=renderDashboard();
+  else if(currentView==='pacienti') c.innerHTML=renderPatientList();
+  else if(currentView.startsWith('detail_')) c.innerHTML=renderPatientDetail(currentView.replace('detail_',''));
+  else if(currentView==='evaluare') c.innerHTML=renderEvaluareView();
+  else if(currentView==='sedinte') c.innerHTML=renderSedinteleView();
+  else if(currentView==='exercitii'){c.innerHTML=renderExercitiiView();setTimeout(rerenderEx,10)}
+  else if(currentView==='programari') c.innerHTML=renderProgramariView();
+  else c.innerHTML=renderComingSoon(currentView);
+}
+
+// ═══════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════
+function renderDashboard(){
+  const pts=getPatients();
+  const activi=pts.filter(p=>p.status==='activ').length;
+  const intrerupti=pts.filter(p=>p.status==='intrerupt').length;
+  const terminati=pts.filter(p=>p.status==='terminat').length;
+  const totalSedinte=pts.reduce((s,p)=>s+(p.sedinte||[]).length,0);
+  const faraGDPR=pts.filter(p=>!p.gdpr).length;
+  const recent=[...pts].sort((a,b)=>(b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0)).slice(0,6);
+
+  return `
+  <div class="stats-grid">
+    <div class="stat-card accent">
+      <div class="stat-label">Total pacienți</div>
+      <div class="stat-value">${pts.length}</div>
+      <div class="stat-sub">în baza de date</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Activi</div>
+      <div class="stat-value">${activi}</div>
+      <div class="stat-sub">cazuri în desfășurare</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Ședințe totale</div>
+      <div class="stat-value">${totalSedinte}</div>
+      <div class="stat-sub">înregistrate</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Finalizați</div>
+      <div class="stat-value">${terminati}</div>
+      <div class="stat-sub">${intrerupti>0?`+ ${intrerupti} întrerupți`:''}</div>
+    </div>
+  </div>
+
+  ${faraGDPR>0?`<div class="gdpr-missing" style="margin-bottom:16px">🔒 <strong>${faraGDPR} pacient(i)</strong> fără consimțământ GDPR bifat. <button class="btn btn-xs" style="margin-left:8px;background:var(--gdpr);color:#fff;border:none" onclick="showView('pacienti');setFilter('toti')">Vezi lista →</button></div>`:''}
+
+  <div class="section-header">
+    <div class="section-title">Activitate recentă</div>
+    <button class="btn btn-secondary btn-sm" onclick="showView('pacienti')">Toți pacienții →</button>
+  </div>
+  <div class="patient-table-wrap">
+    ${recent.length===0?`<div class="empty-state"><div class="icon">🏥</div><p>Niciun pacient înregistrat.</p><button class="btn btn-primary" style="margin-top:13px" onclick="openNewPatient()">+ Adaugă primul pacient</button></div>`:`
+    <table>
+      <thead><tr><th>Pacient</th><th>Diagnostic</th><th>Ședințe</th><th>Status</th></tr></thead>
+      <tbody>
+        ${recent.map(p=>`
+        <tr onclick="openDetail('${p.id}')">
+          <td>
+            <div class="patient-name">${esc(p.nume)} ${!p.gdpr?`<span class="badge-gdpr-warn badge" onclick="event.stopPropagation();openEditPatient('${p.id}')" title="Lipsă GDPR — click pentru editare">🔒 GDPR</span>`:''}
+            </div>
+            <div class="patient-sub">${p.varsta?p.varsta+' ani · ':''}${esc(p.tipCaz||'')}</div>
+          </td>
+          <td><div style="font-size:13px">${esc(p.diagnosticMedical||'—')}</div></td>
+          <td class="mono">${(p.sedinte||[]).length}</td>
+          <td><span class="badge badge-${p.status||'activ'}">${statusLabel(p.status)}</span></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`}
+  </div>`;
+}
+
+// ═══════════════════════════════════════════
+// PATIENT LIST
+// ═══════════════════════════════════════════
+function renderPatientList(){
+  let pts=getPatients();
+  if(searchTerm){const q=searchTerm.toLowerCase();pts=pts.filter(p=>(p.nume||'').toLowerCase().includes(q)||(p.diagnosticMedical||'').toLowerCase().includes(q))}
+  if(filterStatus!=='toti') pts=pts.filter(p=>(p.status||'activ')===filterStatus);
+  pts.sort((a,b)=>(b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0));
+
+  return `
+  <div class="section-header">
+    <div class="section-title">Toți pacienții</div>
+    <button class="btn btn-primary btn-sm" onclick="openNewPatient()">+ Pacient nou</button>
+  </div>
+  <div class="patient-table-wrap">
+    <div class="filter-bar">
+      ${['toti','activ','pauza','intrerupt','terminat'].map(s=>`<button class="filter-chip ${filterStatus===s?'active':''}" onclick="setFilter('${s}')">${s==='toti'?'Toți':statusLabel(s)}</button>`).join('')}
+      <span style="margin-left:auto;font-size:12px;color:var(--text-muted)">${pts.length} pacienți</span>
+    </div>
+    ${pts.length===0?`<div class="no-results">${searchTerm?`Niciun rezultat pentru „${esc(searchTerm)}"` : 'Niciun pacient în această categorie.'}</div>`:`
+    <table>
+      <thead><tr><th>Pacient</th><th>Diagnostic</th><th>Ședințe</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        ${pts.map(p=>`
+        <tr onclick="openDetail('${p.id}')">
+          <td>
+            <div class="patient-name">
+              ${esc(p.nume)}
+              ${!p.gdpr?`<span class="badge-gdpr-warn badge" style="margin-left:5px" onclick="event.stopPropagation();openEditPatient('${p.id}')" title="Lipsă GDPR — click pentru editare">🔒 GDPR</span>`:''}
+            </div>
+            <div class="patient-sub">${p.varsta?p.varsta+' ani':''} ${p.ocupatie?'· '+esc(p.ocupatie):''}</div>
+          </td>
+          <td><div style="font-size:13px">${esc(p.diagnosticMedical||'—')}</div><div class="patient-sub">${esc(p.tipCaz||'')}</div></td>
+          <td class="mono">${(p.sedinte||[]).length}</td>
+          <td><span class="badge badge-${p.status||'activ'}">${statusLabel(p.status)}</span></td>
+          <td onclick="event.stopPropagation()">
+            <div class="row-actions">
+              <button class="btn btn-secondary btn-sm" onclick="openEditPatient('${p.id}')" title="Editează">✏️</button>
+              <button class="btn btn-danger btn-sm" onclick="openDeleteConfirm('${p.id}')" title="Șterge">🗑</button>
+            </div>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`}
+  </div>`;
+}
+
+function setFilter(s){filterStatus=s;renderView()}
+function onGlobalSearch(v){searchTerm=v;if(currentView!=='pacienti') showView('pacienti');else renderView()}
+
+// ═══════════════════════════════════════════
+// PATIENT DETAIL
+// ═══════════════════════════════════════════
+function openDetail(id){
+  currentView='detail_'+id;
+  activePatientId=id;
+  const p=getPatient(id);
+  document.getElementById('topbarTitle').textContent=p?p.nume:'Pacient';
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  renderView();
+}
+
+function renderPatientDetail(id){
+  const p=getPatient(id);
+  if(!p) return '<p>Pacient negăsit.</p>';
+  const ini=(p.nume||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const sedinte=p.sedinte||[];
+  const ev=(p.evaluari||[])[0];
+
+  return `
+  <button class="btn btn-secondary btn-sm" onclick="showView('pacienti')" style="margin-bottom:13px">← Înapoi</button>
+
+  ${!p.gdpr?`<div class="gdpr-missing" style="margin-bottom:13px">🔒 Lipsă consimțământ GDPR — <button class="btn btn-xs" style="background:var(--gdpr);color:#fff;border:none;margin-left:4px" onclick="openEditPatient('${p.id}')">Completează acum</button></div>`:''}
+
+  <div class="detail-header">
+    <div style="display:flex;gap:13px;align-items:flex-start">
+      <div class="detail-avatar">${ini}</div>
+      <div>
+        <div class="detail-name">${esc(p.nume)}</div>
+        <div class="detail-meta">
+          ${p.varsta?`<span>🎂 ${p.varsta} ani</span>`:''}
+          ${p.ocupatie?`<span>💼 ${esc(p.ocupatie)}</span>`:''}
+          ${p.telefon?`<span>📞 ${esc(p.telefon)}</span>`:''}
+          <span><span class="badge badge-${p.status||'activ'}">${statusLabel(p.status)}</span></span>
+          ${p.gdpr?`<span style="font-size:12px;color:#3A8A3A">✅ GDPR</span>`:`<span style="font-size:12px;color:var(--gdpr)">🔒 Fără GDPR</span>`}
+        </div>
+        <div style="margin-top:7px;font-size:13px;color:var(--text-muted)">
+          ${esc(p.diagnosticMedical||'')} ${p.tipCaz?'· '+esc(p.tipCaz):''}
+          ${p.redFlags?`<span style="color:var(--warn);margin-left:10px">⚠️ Red flags</span>`:''}
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:7px;flex-shrink:0;flex-wrap:wrap">
+      <button class="btn btn-info btn-sm" onclick="openEvaluareModal('${p.id}')">📊 ${ev?'Reevaluare':'Evaluare'}</button>
+      <button class="btn btn-primary btn-sm" onclick="openSedintaModal('${p.id}')">+ Ședință</button>
+      <button class="btn btn-secondary btn-sm" onclick="openEditPatient('${p.id}')">✏️ Editează</button>
+      <button class="btn btn-danger btn-sm" onclick="openDeleteConfirm('${p.id}')">🗑</button>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tab-fisa" onclick="switchTab('fisa','${p.id}')">Fișă</button>
+    <button class="tab-btn" id="tab-sedinte" onclick="switchTab('sedinte','${p.id}')">Ședințe (${sedinte.length})</button>
+    <button class="tab-btn" id="tab-evaluare" onclick="switchTab('evaluare','${p.id}')">Evaluare ${ev?'✓':''}</button>
+    <button class="tab-btn" id="tab-progres" onclick="switchTab('progres','${p.id}')">Progres</button>
+  </div>
+  <div id="tab-content">${renderTabFisa(p)}</div>`;
+}
+
+function switchTab(tab,id){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  const btn=document.getElementById('tab-'+tab);
+  if(btn) btn.classList.add('active');
+  const p=getPatient(id);
+  const c=document.getElementById('tab-content');
+  if(tab==='fisa') c.innerHTML=renderTabFisa(p);
+  else if(tab==='sedinte') c.innerHTML=renderTabSedinte(p);
+  else if(tab==='evaluare') c.innerHTML=renderTabEvaluare(p);
+  else if(tab==='progres') c.innerHTML=renderTabProgres(p);
+}
+
+function renderTabFisa(p){
+  const motive=Array.isArray(p.motivePrezentare)?p.motivePrezentare.join(', '):(p.motivePrezentare||'—');
+  return `
+  <div class="info-grid">
+    <div class="info-card">
+      <div class="info-card-title">🏥 Diagnostic</div>
+      <div class="info-row"><span class="lbl">Diagnostic medical</span><span class="val">${esc(p.diagnosticMedical||'—')}</span></div>
+      <div class="info-row"><span class="lbl">Tip caz</span><span class="val">${esc(p.tipCaz||'—')}</span></div>
+      <div class="info-row"><span class="lbl">Motiv prezentare</span><span class="val">${esc(motive)}</span></div>
+      <div class="info-row"><span class="lbl">Debut problemă</span><span class="val">${esc(p.debutProblema||'—')}</span></div>
+    </div>
+    <div class="info-card">
+      <div class="info-card-title">👤 Date personale</div>
+      <div class="info-row"><span class="lbl">Vârstă</span><span class="val">${p.varsta?p.varsta+' ani':'—'}</span></div>
+      <div class="info-row"><span class="lbl">Ocupație</span><span class="val">${esc(p.ocupatie||'—')}</span></div>
+      <div class="info-row"><span class="lbl">Sport</span><span class="val">${esc(p.activitateSportiva||'—')}</span></div>
+      <div class="info-row"><span class="lbl">Mâna dominantă</span><span class="val">${esc(p.mainaDominanta||'—')}</span></div>
+    </div>
+    <div class="info-card">
+      <div class="info-card-title">📋 Antecedente</div>
+      <div class="info-row"><span class="lbl">Investigații</span><span class="val">${esc(p.investigatii||'—')}</span></div>
+      <div class="info-row"><span class="lbl">Operații</span><span class="val">${esc(p.operatii||'—')}</span></div>
+      <div class="info-row"><span class="lbl">Boli asociate</span><span class="val">${esc(p.boliAsociate||'—')}</span></div>
+      <div class="info-row"><span class="lbl">Medicație</span><span class="val">${esc(p.medicatie||'—')}</span></div>
+    </div>
+    <div class="info-card">
+      <div class="info-card-title">⚠️ Siguranță + GDPR</div>
+      <div class="info-row"><span class="lbl">Contraindicații</span><span class="val">${esc(p.contraindicatii||'—')}</span></div>
+      <div class="info-row"><span class="lbl">Red flags</span><span class="val" style="color:var(--warn)">${esc(p.redFlags||'—')}</span></div>
+      <div class="info-row"><span class="lbl">Consimțământ GDPR</span><span class="val">${p.gdpr?'<span style="color:#2D8A4A">✅ Da</span>':'<span style="color:var(--gdpr)">🔒 Lipsă</span>'}</span></div>
+      ${p.gdprData?`<div class="info-row"><span class="lbl">Data GDPR</span><span class="val">${fmtDate(p.gdprData)}</span></div>`:''}
+    </div>
+  </div>
+  ${p.observatii?`<div class="info-card"><div class="info-card-title">📝 Observații</div><p style="font-size:13px;line-height:1.6">${esc(p.observatii)}</p></div>`:''}`;
+}
+
+function renderTabSedinte(p){
+  const sedinte=(p.sedinte||[]).slice().reverse();
+  return `
+  <div style="display:flex;justify-content:flex-end;margin-bottom:11px">
+    <button class="btn btn-primary btn-sm" onclick="openSedintaModal('${p.id}')">+ Ședință nouă</button>
+  </div>
+  ${sedinte.length===0?`<div class="empty-state"><div class="icon">📋</div><p>Nicio ședință înregistrată.</p></div>`:
+    sedinte.map((s,i)=>{
+      const nr=(p.sedinte||[]).length-i;
+      const vasColor=vasToColor(s.vas);
+      return `
+      <div class="sedinta-card">
+        <div class="sedinta-header" onclick="toggleSedinta('sed-${p.id}-${s.id}')">
+          <span class="sedinta-nr">#${nr}</span>
+          <span class="sedinta-date">${fmtDate(s.data)}</span>
+          <span class="sedinta-preview">${esc(s.ceLucrat||'—')}</span>
+          ${s.vas!=null?`<span class="sedinta-vas"><span class="vas-dot" style="background:${vasColor}"></span>VAS ${s.vas}</span>`:''}
+          <div style="display:flex;gap:5px" onclick="event.stopPropagation()">
+            <button class="btn btn-secondary btn-sm" onclick="openEditSedinta('${p.id}','${s.id}')">✏️</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteSedinta('${p.id}','${s.id}')">🗑</button>
+          </div>
+        </div>
+        <div class="sedinta-body" id="sed-${p.id}-${s.id}">
+          <div class="sedinta-grid">
+            <div class="sedinta-field"><label>Ce s-a lucrat</label><p>${esc(s.ceLucrat||'—')}</p></div>
+            <div class="sedinta-field"><label>Reacție pacient</label><p>${esc(s.reactiePacient||'—')}</p></div>
+            <div class="sedinta-field"><label>Progres</label><p>${esc(s.progres||'—')}</p></div>
+            <div class="sedinta-field"><label>Plan ședința următoare</label><p>${esc(s.planUrmator||'—')}</p></div>
+            ${s.exercitiiAcasa?`<div class="sedinta-field full"><label>Exerciții acasă</label><p>${esc(s.exercitiiAcasa)}</p></div>`:''}
+            ${s.observatii?`<div class="sedinta-field full"><label>Observații</label><p>${esc(s.observatii)}</p></div>`:''}
+          </div>
+        </div>
+      </div>`;
+    }).join('')
+  }`;
+}
+
+function renderTabEvaluare(p){
+  const evaluari=p.evaluari||[];
+  if(evaluari.length===0) return `
+    <div class="empty-state"><div class="icon">📊</div><p>Nicio evaluare înregistrată.</p>
+    <button class="btn btn-primary" style="margin-top:13px" onclick="openEvaluareModal('${p.id}')">+ Evaluare inițială</button></div>`;
+  return `
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:13px">
+    <div style="font-size:13px;color:var(--text-muted)">${evaluari.length} evaluare(i)</div>
+    <button class="btn btn-info btn-sm" onclick="openEvaluareModal('${p.id}')">+ Reevaluare</button>
+  </div>
+  ${evaluari.slice().reverse().map((ev,i)=>{
+    const nr=evaluari.length-i;
+    return `
+    <div class="eval-section">
+      <div class="eval-section-header">
+        📊 ${nr===1?'Evaluare inițială':'Reevaluare #'+nr} — ${fmtDate(ev.data)}
+        <button class="btn btn-danger btn-xs" style="margin-left:auto" onclick="deleteEvaluare('${p.id}',${evaluari.indexOf(ev)})">🗑</button>
+      </div>
+      <div class="eval-section-body">
+        <div class="form-grid" style="margin-bottom:11px">
+          ${ev.vasInitial!=null?`<div><div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Durere VAS</div><div style="font-size:22px;font-family:'DM Serif Display',serif;color:${vasToColor(ev.vasInitial)}">${ev.vasInitial}/10</div></div>`:''}
+          ${ev.diagnostic?`<div><div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Diagnostic funcțional</div><div style="font-size:13px">${esc(ev.diagnostic)}</div></div>`:''}
+        </div>
+        ${ev.postura?`<div style="margin-bottom:9px"><span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted)">Postură: </span><span style="font-size:13px">${esc(ev.postura)}</span></div>`:''}
+        ${ev.rom&&Object.keys(ev.rom).some(k=>ev.rom[k])?`
+        <div style="margin-bottom:9px">
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);margin-bottom:6px">ROM</div>
+          <div class="rom-grid">${Object.entries(ev.rom).filter(([k,v])=>v).map(([k,v])=>`<div style="font-size:12px"><strong>${esc(k)}:</strong> ${esc(v)}</div>`).join('')}</div>
+        </div>`:''}
+        ${ev.forta?`<div style="margin-bottom:9px"><span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted)">Forță MMT: </span><span style="font-size:13px">${esc(ev.forta)}</span></div>`:''}
+        ${ev.testeSpeciale?`<div style="margin-bottom:9px"><span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted)">Teste speciale: </span><span style="font-size:13px">${esc(ev.testeSpeciale)}</span></div>`:''}
+        ${ev.palpare?`<div style="margin-bottom:9px"><span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted)">Palpare: </span><span style="font-size:13px">${esc(ev.palpare)}</span></div>`:''}
+        ${ev.functional?`<div style="margin-bottom:9px"><span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted)">Funcțional: </span><span style="font-size:13px">${esc(ev.functional)}</span></div>`:''}
+        ${ev.durereAgraveaza||ev.durereAmelioreaza?`<div class="form-grid" style="margin-bottom:9px">
+          ${ev.durereAgraveaza?`<div><span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted)">Agravează: </span><span style="font-size:13px">${esc(ev.durereAgraveaza)}</span></div>`:''}
+          ${ev.durereAmelioreaza?`<div><span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted)">Ameliorează: </span><span style="font-size:13px">${esc(ev.durereAmelioreaza)}</span></div>`:''}
+        </div>`:''}
+        ${ev.obiective?`<div style="background:var(--accent-bg);border-radius:var(--radius-sm);padding:9px 13px;font-size:13px;margin-bottom:7px"><strong>🎯 Obiective:</strong> ${esc(ev.obiective)}</div>`:''}
+        ${ev.planTratament?`<div style="background:var(--info-bg);border-radius:var(--radius-sm);padding:9px 13px;font-size:13px"><strong>📋 Plan:</strong> ${esc(ev.planTratament)}</div>`:''}
+      </div>
+    </div>`;
+  }).join('')}`;
+}
+
+function renderTabProgres(p){
+  const sedinte=p.sedinte||[];
+  const vasData=sedinte.filter(s=>s.vas!=null).map(s=>({data:s.data,vas:s.vas}));
+  let chartHtml='';
+  if(vasData.length>=2){
+    const w=560,h=155,pL=40,pR=20,pT=18,pB=28;
+    const step=(w-pL-pR)/(vasData.length-1);
+    const yScale=v=>pT+(10-v)/10*(h-pT-pB);
+    const points=vasData.map((d,i)=>({x:pL+i*step,y:yScale(d.vas),vas:d.vas,data:d.data}));
+    const poly=points.map(p=>`${p.x},${p.y}`).join(' ');
+    const area=`${pL},${h-pB} ${poly} ${pL+(vasData.length-1)*step},${h-pB}`;
+    let grid='';
+    for(let v=0;v<=10;v+=2){const y=yScale(v);grid+=`<line x1="${pL}" y1="${y}" x2="${w-pR}" y2="${y}" stroke="#C2D8EC" stroke-width="1"/><text x="${pL-6}" y="${y+4}" font-size="10" fill="#5A7A96" text-anchor="end">${v}</text>`}
+    const dots=points.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="5" fill="${vasToColor(p.vas)}" stroke="white" stroke-width="2"><title>VAS ${p.vas} — ${fmtDate(p.data)}</title></circle>`).join('');
+    chartHtml=`<div class="chart-wrap"><div class="chart-title">Evoluție durere VAS</div><svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;overflow:visible">${grid}<polyline points="${area}" fill="rgba(26,111,168,0.07)" stroke="none"/><polyline points="${poly}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>${dots}</svg></div>`;
+  } else if(vasData.length>0){
+    chartHtml=`<div class="info-box" style="margin-bottom:13px">ℹ️ Adaugă cel puțin 2 ședințe cu VAS pentru graficul de evoluție.</div>`;
+  }
+  const ev=(p.evaluari||[])[0];
+  const lastSed=sedinte[sedinte.length-1];
+  return `${chartHtml}
+  <div class="info-grid">
+    <div class="info-card">
+      <div class="info-card-title">📊 Rezumat</div>
+      <div class="info-row"><span class="lbl">Total ședințe</span><span class="val">${sedinte.length}</span></div>
+      <div class="info-row"><span class="lbl">VAS inițial</span><span class="val" style="color:${vasToColor(ev?.vasInitial)}">${ev?.vasInitial!=null?ev.vasInitial+'/10':'—'}</span></div>
+      <div class="info-row"><span class="lbl">VAS curent</span><span class="val" style="color:${vasToColor(lastSed?.vas)}">${lastSed?.vas!=null?lastSed.vas+'/10':'—'}</span></div>
+      ${ev?.vasInitial!=null&&lastSed?.vas!=null?`<div class="info-row"><span class="lbl">Ameliorare</span><span class="val" style="color:#2D8A4A">${ev.vasInitial-lastSed.vas>0?'-'+(ev.vasInitial-lastSed.vas)+' pct ✓':'—'}</span></div>`:''}
+    </div>
+    <div class="info-card">
+      <div class="info-card-title">🎯 Obiective</div>
+      <p style="font-size:13px;line-height:1.6">${esc(ev?.obiective||'—')}</p>
+      ${lastSed?`<div class="divider"></div><div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);margin-bottom:4px">Plan ședința urm.</div><p style="font-size:13px">${esc(lastSed.planUrmator||'—')}</p>`:''}
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════
+// EVALUARE + SEDINTE VIEWS
+// ═══════════════════════════════════════════
+function renderEvaluareView(){
+  const pts=getPatients().filter(p=>(p.status||'activ')==='activ');
+  return `
+  <div class="section-header"><div class="section-title">Evaluare pacienți</div></div>
+  <div class="info-box" style="margin-bottom:16px">ℹ️ Selectează un pacient activ pentru a adăuga sau vizualiza evaluarea.</div>
+  <div class="patient-table-wrap">${pts.length===0?`<div class="empty-state"><div class="icon">📊</div><p>Niciun pacient activ.</p></div>`:`
+  <table>
+    <thead><tr><th>Pacient</th><th>Diagnostic</th><th>Evaluări</th><th>Acțiuni</th></tr></thead>
+    <tbody>${pts.map(p=>`
+    <tr>
+      <td><div class="patient-name">${esc(p.nume)}</div><div class="patient-sub">${p.varsta?p.varsta+' ani':''}</div></td>
+      <td>${esc(p.diagnosticMedical||'—')}</td>
+      <td class="mono">${(p.evaluari||[]).length}</td>
+      <td style="display:flex;gap:6px">
+        <button class="btn btn-info btn-sm" onclick="openEvaluareModal('${p.id}')">+ Evaluare</button>
+        <button class="btn btn-secondary btn-sm" onclick="openDetail('${p.id}');setTimeout(()=>switchTab('evaluare','${p.id}'),50)">Vezi</button>
+      </td>
+    </tr>`).join('')}</tbody>
+  </table>`}</div>`;
+}
+
+function renderSedinteleView(){
+  const pts=getPatients();
+  const toate=pts.flatMap(p=>(p.sedinte||[]).map(s=>({...s,pacient:p}))).sort((a,b)=>new Date(b.data)-new Date(a.data));
+  return `
+  <div class="section-header"><div class="section-title">Toate ședințele</div></div>
+  ${toate.length===0?`<div class="empty-state"><div class="icon">📋</div><p>Nicio ședință înregistrată.</p></div>`:`
+  <div class="patient-table-wrap"><table>
+    <thead><tr><th>Data</th><th>Pacient</th><th>Ce s-a lucrat</th><th>VAS</th><th></th></tr></thead>
+    <tbody>${toate.slice(0,50).map(s=>`
+    <tr onclick="openDetail('${s.pacient.id}');setTimeout(()=>switchTab('sedinte','${s.pacient.id}'),50)">
+      <td class="mono">${fmtDate(s.data)}</td>
+      <td><div class="patient-name">${esc(s.pacient.nume)}</div></td>
+      <td style="font-size:13px;max-width:240px">${esc((s.ceLucrat||'—').slice(0,75))}${(s.ceLucrat||'').length>75?'…':''}</td>
+      <td>${s.vas!=null?`<span style="font-weight:700;color:${vasToColor(s.vas)}">${s.vas}</span>`:'—'}</td>
+      <td onclick="event.stopPropagation()"><button class="btn btn-secondary btn-sm" onclick="openSedintaModal('${s.pacient.id}')">+ Ședință</button></td>
+    </tr>`).join('')}</tbody>
+  </table></div>`}`;
+}
+
+// ═══════════════════════════════════════════
+// MODAL: PACIENT — FORM + SAVE + GDPR FLOW
+// ═══════════════════════════════════════════
+function openNewPatient(){editingId=null;document.getElementById('modalTitle').textContent='Pacient nou';document.getElementById('modalBody').innerHTML=patientForm({});bindCheckboxPills();openModal('patientModal')}
+function openEditPatient(id){const p=getPatient(id);if(!p) return;editingId=id;document.getElementById('modalTitle').textContent='Editează — '+p.nume;document.getElementById('modalBody').innerHTML=patientForm(p);bindCheckboxPills();openModal('patientModal');toast('Editezi pacientul '+p.nume,'info')}
+
+function patientForm(p){
+  const motive=['Durere','Limitare mișcare','Postoperator','Traumatism','Reabilitare','Profilactic'];
+  const tipuriCaz=['Ortopedic','Neurologic','Cardiac','Respirator','Geriatric','Pediatric','Mixt'];
+  const statusuri=[['activ','Activ'],['pauza','Pauză'],['intrerupt','Întrerupt'],['terminat','Terminat']];
+  return `
+  <div class="form-section">
+    <div class="form-section-title">Date personale</div>
+    <div class="form-grid">
+      <div class="form-group full"><label>Nume complet *</label><input type="text" id="f_nume" value="${esc(p.nume||'')}" placeholder="Popescu Ioan"></div>
+      <div class="form-group"><label>Vârstă</label><input type="number" id="f_varsta" value="${esc(p.varsta||'')}" min="1" max="120" placeholder="ani"></div>
+      <div class="form-group"><label>Mâna dominantă</label><select id="f_mainaDominanta"><option value="">—</option><option value="Dreaptă" ${p.mainaDominanta==='Dreaptă'?'selected':''}>Dreaptă</option><option value="Stângă" ${p.mainaDominanta==='Stângă'?'selected':''}>Stângă</option><option value="Ambidextru" ${p.mainaDominanta==='Ambidextru'?'selected':''}>Ambidextru</option></select></div>
+      <div class="form-group"><label>Ocupație</label><input type="text" id="f_ocupatie" value="${esc(p.ocupatie||'')}" placeholder="profesor, sudor..."></div>
+      <div class="form-group"><label>Activitate sportivă</label><input type="text" id="f_activitateSportiva" value="${esc(p.activitateSportiva||'')}" placeholder="fotbal, înot..."></div>
+    </div>
+  </div>
+  <div class="form-section">
+    <div class="form-section-title">Contact & Status</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Telefon</label><input type="tel" id="f_telefon" value="${esc(p.telefon||'')}" placeholder="07xx xxx xxx"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="f_email" value="${esc(p.email||'')}" placeholder="email@gmail.com"></div>
+      <div class="form-group"><label>Data primei ședințe</label><input type="date" id="f_dataPrimaSedinta" value="${esc(p.dataPrimaSedinta||'')}"></div>
+      <div class="form-group"><label>Status</label><select id="f_status">${statusuri.map(([v,l])=>`<option value="${v}" ${(p.status||'activ')===v?'selected':''}>${l}</option>`).join('')}</select></div>
+    </div>
+  </div>
+  <div class="form-section">
+    <div class="form-section-title">Diagnostic & Caz</div>
+    <div class="form-grid">
+      <div class="form-group full"><label>Diagnostic medical</label><input type="text" id="f_diagnosticMedical" value="${esc(p.diagnosticMedical||'')}" placeholder="Entorsă gleznă gr.II, Hernie L4-L5..."></div>
+      <div class="form-group"><label>Tip caz</label><select id="f_tipCaz"><option value="">—</option>${tipuriCaz.map(t=>`<option value="${t}" ${p.tipCaz===t?'selected':''}>${t}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Debut problemă</label><input type="text" id="f_debutProblema" value="${esc(p.debutProblema||'')}" placeholder="3 săptămâni, după accident..."></div>
+      <div class="form-group full"><label>Motiv prezentare</label>
+        <div class="checkbox-group" id="motivePrezentare">
+          ${motive.map(m=>{const ch=Array.isArray(p.motivePrezentare)&&p.motivePrezentare.includes(m);return`<label class="checkbox-pill ${ch?'checked':''}"><input type="checkbox" value="${m}" ${ch?'checked':''}>${m}</label>`}).join('')}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="form-section">
+    <div class="form-section-title">Antecedente medicale</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Investigații</label><input type="text" id="f_investigatii" value="${esc(p.investigatii||'')}" placeholder="RMN coloană 2024"></div>
+      <div class="form-group"><label>Operații</label><input type="text" id="f_operatii" value="${esc(p.operatii||'')}" placeholder="meniscectomie 2022"></div>
+      <div class="form-group"><label>Boli asociate</label><input type="text" id="f_boliAsociate" value="${esc(p.boliAsociate||'')}" placeholder="HTA, diabet..."></div>
+      <div class="form-group"><label>Medicație curentă</label><input type="text" id="f_medicatie" value="${esc(p.medicatie||'')}" placeholder="Diclofenac..."></div>
+    </div>
+  </div>
+  <div class="form-section">
+    <div class="form-section-title">⚠️ Siguranță clinică</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Contraindicații</label><textarea id="f_contraindicatii" placeholder="Nu electroterapie, osteoporoză severă...">${esc(p.contraindicatii||'')}</textarea></div>
+      <div class="form-group"><label>Red flags</label><textarea id="f_redFlags" placeholder="durere nocturnă, pierdere în greutate inexplicabilă...">${esc(p.redFlags||'')}</textarea></div>
+    </div>
+    ${p.redFlags?`<div class="warn-box" style="margin-top:9px">⚠️ Pacient cu red flags — verifică înainte de tratament!</div>`:''}
+  </div>
+  <div class="form-section">
+    <div class="form-section-title">🔒 Consimțământ GDPR</div>
+    <div class="gdpr-block">
+      <input type="checkbox" id="f_gdpr" ${p.gdpr?'checked':''} onchange="onGdprChange(this)">
+      <div class="gdpr-text">
+        <strong>Consimțământ prelucrare date personale</strong><br>
+        Pacientul și-a dat acordul explicit pentru colectarea, stocarea și prelucrarea datelor cu caracter personal în scopul furnizării serviciilor de fizioterapie, conform <strong>Regulamentului (UE) 2016/679 (GDPR)</strong>.
+        ${p.gdprData?`<br><span style="font-size:11px;color:var(--text-muted);margin-top:4px;display:block">Bifat la: ${fmtDate(p.gdprData)}</span>`:''}
+      </div>
+    </div>
+    <div id="gdpr_warn_inline" style="display:${p.gdpr?'none':'block'};margin-top:8px">
+      <div class="gdpr-missing">🔒 Fără GDPR bifat, datele pacientului nu pot fi prelucrate legal. Poți salva, dar ești avertizat.</div>
+    </div>
+  </div>
+  <div class="form-section">
+    <div class="form-section-title">Observații</div>
+    <div class="form-grid cols-1"><div class="form-group"><label>Note libere</label><textarea id="f_observatii" rows="3">${esc(p.observatii||'')}</textarea></div></div>
+  </div>`;
+}
+
+function onGdprChange(cb){
+  const warn=document.getElementById('gdpr_warn_inline');
+  if(warn) warn.style.display=cb.checked?'none':'block';
+}
+
+function bindCheckboxPills(){
+  document.querySelectorAll('.checkbox-pill').forEach(pill=>{
+    pill.addEventListener('click',function(e){
+      if(e.target.tagName==='INPUT') return;
+      const cb=this.querySelector('input');
+      cb.checked=!cb.checked;
+      this.classList.toggle('checked',cb.checked);
+    });
+  });
+}
+
+function collectPatientForm(){
+  const numeEl=document.getElementById('f_nume');
+  if(!numeEl?.value.trim()){toast('⚠️ Numele este obligatoriu','warn');numeEl?.focus();return null}
+  const motive=Array.from(document.querySelectorAll('#motivePrezentare input:checked')).map(cb=>cb.value);
+  const gdprBifat=document.getElementById('f_gdpr')?.checked||false;
+  const existing=editingId?getPatient(editingId):null;
+  return {
+    id:editingId||uid(),
+    createdAt:existing?.createdAt||Date.now(),
+    updatedAt:Date.now(),
+    sedinte:existing?.sedinte||[],
+    evaluari:existing?.evaluari||[],
+    gdpr:gdprBifat,
+    gdprData:gdprBifat?(existing?.gdprData||todayStr()):null,
+    nume:numeEl.value.trim(),
+    varsta:document.getElementById('f_varsta').value,
+    mainaDominanta:document.getElementById('f_mainaDominanta').value,
+    ocupatie:document.getElementById('f_ocupatie').value.trim(),
+    activitateSportiva:document.getElementById('f_activitateSportiva').value.trim(),
+    telefon:document.getElementById('f_telefon').value.trim(),
+    email:document.getElementById('f_email').value.trim(),
+    dataPrimaSedinta:document.getElementById('f_dataPrimaSedinta').value,
+    status:document.getElementById('f_status').value,
+    diagnosticMedical:document.getElementById('f_diagnosticMedical').value.trim(),
+    tipCaz:document.getElementById('f_tipCaz').value,
+    debutProblema:document.getElementById('f_debutProblema').value.trim(),
+    motivePrezentare:motive,
+    investigatii:document.getElementById('f_investigatii').value.trim(),
+    operatii:document.getElementById('f_operatii').value.trim(),
+    boliAsociate:document.getElementById('f_boliAsociate').value.trim(),
+    medicatie:document.getElementById('f_medicatie').value.trim(),
+    contraindicatii:document.getElementById('f_contraindicatii').value.trim(),
+    redFlags:document.getElementById('f_redFlags').value.trim(),
+    observatii:document.getElementById('f_observatii').value.trim(),
+  };
+}
+
+function savePatient(){
+  const p=collectPatientForm();
+  if(!p) return;
+  if(!p.gdpr){
+    // Avertizare GDPR
+    pendingSavePatient=p;
+    document.getElementById('gdprWarnName').textContent=p.nume;
+    closeModal('patientModal');
+    openModal('gdprWarnModal');
+    return;
+  }
+  doSavePatient(p);
+}
+
+function gdprContinueAnyway(){
+  if(pendingSavePatient){doSavePatient(pendingSavePatient);pendingSavePatient=null}
+  closeModal('gdprWarnModal');
+}
+
+function gdprGoCorrect(){
+  closeModal('gdprWarnModal');
+  // Redeschide formularul cu datele deja completate
+  const p=pendingSavePatient;
+  pendingSavePatient=null;
+  if(p){
+    editingId=p.id;
+    document.getElementById('modalTitle').textContent='Editează — '+p.nume+' (corectează GDPR)';
+    document.getElementById('modalBody').innerHTML=patientForm(p);
+    bindCheckboxPills();
+    openModal('patientModal');
+    setTimeout(()=>{
+      const gdprEl=document.getElementById('f_gdpr');
+      if(gdprEl){gdprEl.scrollIntoView({behavior:'smooth',block:'center'})}
+    },200);
+  }
+}
+
+function doSavePatient(p){
+  const isNew=!editingId&&!getPatient(p.id);
+  savePatientDB(p);
+  closeModal('patientModal');
+  editingId=null;
+  if(isNew) toast('✅ Pacient '+p.nume+' adăugat cu succes','success');
+  else toast('✅ Pacient '+p.nume+' actualizat','success');
+  if(!p.gdpr) toast('🔒 Atenție: pacient fără consimțământ GDPR','warn');
+  renderView();
+}
+
+// ═══════════════════════════════════════════
+// DELETE
+// ═══════════════════════════════════════════
+function openDeleteConfirm(id){
+  const p=getPatient(id);if(!p) return;
+  deletingId=id;
+  document.getElementById('confirmDeleteName').textContent=p.nume;
+  document.getElementById('deleteConfirmInput').value='';
+  document.getElementById('confirmDeleteBtn').disabled=true;
+  openModal('confirmModal');
+  // Enable button only when name matches exactly
+  setTimeout(()=>{
+    const inp=document.getElementById('deleteConfirmInput');
+    if(inp) inp.addEventListener('input',()=>{
+      document.getElementById('confirmDeleteBtn').disabled=inp.value.trim()!==p.nume.trim();
+    });
+  },50);
+}
+
+function confirmDelete(){
+  if(!deletingId) return;
+  const p=getPatient(deletingId);
+  deletePatientDB(deletingId);
+  closeModal('confirmModal');
+  toast('🗑 Pacientul '+( p?.nume||'')+ ' a fost șters definitiv','error');
+  deletingId=null;
+  if(currentView.startsWith('detail_')) showView('pacienti');
+  else renderView();
+}
+
+// ═══════════════════════════════════════════
+// MODAL: SEDINTA
+// ═══════════════════════════════════════════
+function openSedintaModal(patientId,sedintaId){
+  activePatientId=patientId;
+  editingSedintaId=sedintaId||null;
+  const p=getPatient(patientId);
+  const s=sedintaId?(p.sedinte||[]).find(x=>x.id===sedintaId):{};
+  document.getElementById('sedinteModalTitle').textContent=sedintaId?'Editează ședința':`Ședință nouă — ${p.nume}`;
+  document.getElementById('sedinteModalBody').innerHTML=sedintaForm(s||{},p);
+  initVasSlider('fs_vas','fs_vas_val');
+  openModal('sedinteModal');
+}
+function openEditSedinta(pId,sId){openSedintaModal(pId,sId)}
+
+function sedintaForm(s,p){
+  return `
+  ${p?.redFlags?`<div class="warn-box" style="margin-bottom:14px">⚠️ Red flags: ${esc(p.redFlags)}</div>`:''}
+  <div class="form-section">
+    <div class="form-section-title">Date ședință</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Data *</label><input type="date" id="fs_data" value="${esc(s.data||todayStr())}"></div>
+      <div class="form-group"><label>Durere VAS (0–10)</label>
+        <div class="vas-slider-wrap">
+          <input type="range" id="fs_vas" min="0" max="10" step="1" value="${s.vas!=null?s.vas:5}">
+          <span class="vas-value-badge" id="fs_vas_val" style="color:${vasToColor(s.vas!=null?s.vas:5)}">${s.vas!=null?s.vas:'—'}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="form-section">
+    <div class="form-section-title">Conținut ședință</div>
+    <div class="form-grid cols-1">
+      <div class="form-group"><label>Ce s-a lucrat (tehnici, dozaj)</label><textarea id="fs_ceLucrat" rows="3" placeholder="ex: Mobilizare gleznă, US 1MHz 4min, exerciții kinetice...">${esc(s.ceLucrat||'')}</textarea></div>
+      <div class="form-group"><label>Reacție pacient</label><textarea id="fs_reactie" rows="2" placeholder="ex: bine tolerat, durere la flexia activă...">${esc(s.reactiePacient||'')}</textarea></div>
+      <div class="form-group"><label>Progres față de ședința anterioară</label><textarea id="fs_progres" rows="2" placeholder="ex: ROM îmbunătățit cu 10°, durere redusă...">${esc(s.progres||'')}</textarea></div>
+      <div class="form-group"><label>Plan ședința următoare</label><textarea id="fs_planUrmator" rows="2" placeholder="ex: creștem rezistența, adăugăm propriocepție...">${esc(s.planUrmator||'')}</textarea></div>
+      <div class="form-group"><label>Exerciții acasă / Home program</label><textarea id="fs_exercitiiAcasa" rows="2" placeholder="ex: stretching ischio 3×30s, mers 20 min/zi...">${esc(s.exercitiiAcasa||'')}</textarea></div>
+      <div class="form-group"><label>Observații</label><textarea id="fs_observatii" rows="2">${esc(s.observatii||'')}</textarea></div>
+    </div>
+  </div>`;
+}
+
+function initVasSlider(sliderId,valId){
+  const slider=document.getElementById(sliderId);
+  const valEl=document.getElementById(valId);
+  if(!slider||!valEl) return;
+  slider.addEventListener('input',()=>{valEl.textContent=slider.value;valEl.style.color=vasToColor(parseInt(slider.value))});
+  if(valEl.textContent==='—'){
+    const activate=()=>{valEl.textContent=slider.value;valEl.style.color=vasToColor(parseInt(slider.value))};
+    slider.addEventListener('mousedown',activate,{once:true});
+    slider.addEventListener('touchstart',activate,{once:true});
+  }
+}
+
+function saveSedinta(){
+  const dataEl=document.getElementById('fs_data');
+  if(!dataEl?.value){toast('⚠️ Data ședinței este obligatorie','warn');return}
+  const vasVal=document.getElementById('fs_vas_val');
+  const vasNum=vasVal?.textContent!=='—'?parseInt(document.getElementById('fs_vas').value):null;
+  const s={
+    id:editingSedintaId||uid(),
+    data:dataEl.value,
+    vas:vasNum,
+    ceLucrat:document.getElementById('fs_ceLucrat').value.trim(),
+    reactiePacient:document.getElementById('fs_reactie').value.trim(),
+    progres:document.getElementById('fs_progres').value.trim(),
+    planUrmator:document.getElementById('fs_planUrmator').value.trim(),
+    exercitiiAcasa:document.getElementById('fs_exercitiiAcasa').value.trim(),
+    observatii:document.getElementById('fs_observatii').value.trim(),
+  };
+  const p=getPatient(activePatientId);if(!p) return;
+  p.sedinte=p.sedinte||[];
+  if(editingSedintaId){const i=p.sedinte.findIndex(x=>x.id===editingSedintaId);if(i>=0) p.sedinte[i]=s}
+  else p.sedinte.push(s);
+  p.updatedAt=Date.now();
+  savePatientDB(p);
+  closeModal('sedinteModal');
+  toast(editingSedintaId?'✅ Ședință actualizată':'✅ Ședință nouă salvată — '+fmtDate(s.data),'success');
+  editingSedintaId=null;
+  renderView();
+}
+
+function deleteSedinta(patientId,sedintaId){
+  const p=getPatient(patientId);if(!p) return;
+  p.sedinte=(p.sedinte||[]).filter(s=>s.id!==sedintaId);
+  p.updatedAt=Date.now();
+  savePatientDB(p);
+  toast('🗑 Ședință ștearsă','warn');
+  renderView();
+}
+
+function toggleSedinta(id){const el=document.getElementById(id);if(el) el.classList.toggle('open')}
+
+// ═══════════════════════════════════════════
+// MODAL: EVALUARE
+// ═══════════════════════════════════════════
+function openEvaluareModal(patientId){
+  activePatientId=patientId;
+  const p=getPatient(patientId);
+  document.getElementById('evaluareModalTitle').textContent=`Evaluare — ${p.nume}`;
+  document.getElementById('evaluareModalBody').innerHTML=evaluareForm({},p);
+  initVasSlider('fe_vas','fe_vas_val');
+  openModal('evaluareModal');
+}
+
+function evaluareForm(ev,p){
+  const articulatii=['Umăr FL/EX','Umăr ABD','Umăr ROT','Cot FL/EX','Pumn FL/EX','Șold FL/EX','Șold ABD','Genunchi FL/EX','Gleznă DF/FP','Cervical FL','Cervical ROT','Lombar FL'];
+  return `
+  ${p?.redFlags?`<div class="warn-box" style="margin-bottom:14px">⚠️ Red flags: ${esc(p.redFlags)}</div>`:''}
+  <div class="form-section">
+    <div class="form-section-title">Date evaluare</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Data evaluării *</label><input type="date" id="fe_data" value="${esc(ev.data||todayStr())}"></div>
+      <div class="form-group"><label>Durere VAS inițial (0–10)</label>
+        <div class="vas-slider-wrap">
+          <input type="range" id="fe_vas" min="0" max="10" step="1" value="${ev.vasInitial!=null?ev.vasInitial:5}">
+          <span class="vas-value-badge" id="fe_vas_val" style="color:${vasToColor(ev.vasInitial!=null?ev.vasInitial:5)}">${ev.vasInitial!=null?ev.vasInitial:'—'}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="form-section">
+    <div class="form-section-title">Evaluare obiectivă</div>
+    <div class="form-grid cols-1">
+      <div class="form-group"><label>Postură</label><textarea id="fe_postura" rows="2" placeholder="ex: scolioză ușoară, umăr drept ridicat...">${esc(ev.postura||'')}</textarea></div>
+    </div>
+    <div style="margin-top:12px"><label style="display:block;margin-bottom:7px">ROM — completează articulațiile relevante</label>
+    <div class="rom-grid">${articulatii.map(a=>`<div class="rom-item"><label>${a}</label><input type="text" id="fe_rom_${a.replace(/[^a-zA-Z]/g,'_')}" value="${esc((ev.rom||{})[a]||'')}" placeholder="ex: 120°"></div>`).join('')}</div></div>
+  </div>
+  <div class="form-section">
+    <div class="form-section-title">Forță, teste, palpare</div>
+    <div class="form-grid cols-1">
+      <div class="form-group"><label>Forță musculară MMT</label><textarea id="fe_forta" rows="2" placeholder="ex: quad dr MMT 3+, flexori dorsali stg MMT 4...">${esc(ev.forta||'')}</textarea></div>
+      <div class="form-group"><label>Teste speciale</label><textarea id="fe_teste" rows="2" placeholder="ex: Lachman +, McMurray -, Neer +...">${esc(ev.testeSpeciale||'')}</textarea></div>
+      <div class="form-group"><label>Palpare</label><textarea id="fe_palpare" rows="2" placeholder="ex: sensibilitate LLI, contractură trapez...">${esc(ev.palpare||'')}</textarea></div>
+      <div class="form-group"><label>Evaluare funcțională</label><textarea id="fe_functional" rows="2" placeholder="ex: mers șchiopătat, TUG 14s...">${esc(ev.functional||'')}</textarea></div>
+    </div>
+  </div>
+  <div class="form-section">
+    <div class="form-section-title">Durere — detalii</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Ce agravează</label><textarea id="fe_agraveaza" rows="2" placeholder="ex: flexia trunchiului, mers prelungit...">${esc(ev.durereAgraveaza||'')}</textarea></div>
+      <div class="form-group"><label>Ce ameliorează</label><textarea id="fe_amelioreaza" rows="2" placeholder="ex: repaus, căldură...">${esc(ev.durereAmelioreaza||'')}</textarea></div>
+    </div>
+  </div>
+  <div class="form-section">
+    <div class="form-section-title">Concluzii & Plan</div>
+    <div class="form-grid cols-1">
+      <div class="form-group"><label>Diagnostic funcțional</label><input type="text" id="fe_diagnostic" value="${esc(ev.diagnostic||'')}" placeholder="ex: Disfuncție de flexie lombară cu sindrom algic cronic"></div>
+      <div class="form-group"><label>Obiective tratament</label><textarea id="fe_obiective" rows="2" placeholder="ex: reducere durere VAS ≤3, recuperare ROM 80%...">${esc(ev.obiective||'')}</textarea></div>
+      <div class="form-group"><label>Plan tratament</label><textarea id="fe_plan" rows="2" placeholder="ex: 10 ședințe, 3x/săpt — kinetoterapie + fizioterapie...">${esc(ev.planTratament||'')}</textarea></div>
+    </div>
+  </div>`;
+}
+
+function saveEvaluare(){
+  const dataEl=document.getElementById('fe_data');
+  if(!dataEl?.value){toast('⚠️ Data evaluării este obligatorie','warn');return}
+  const vasVal=document.getElementById('fe_vas_val');
+  const vasNum=vasVal?.textContent!=='—'?parseInt(document.getElementById('fe_vas').value):null;
+  const articulatii=['Umăr FL/EX','Umăr ABD','Umăr ROT','Cot FL/EX','Pumn FL/EX','Șold FL/EX','Șold ABD','Genunchi FL/EX','Gleznă DF/FP','Cervical FL','Cervical ROT','Lombar FL'];
+  const rom={};articulatii.forEach(a=>{const v=document.getElementById('fe_rom_'+a.replace(/[^a-zA-Z]/g,'_'))?.value?.trim();if(v) rom[a]=v});
+  const ev={data:dataEl.value,vasInitial:vasNum,postura:document.getElementById('fe_postura').value.trim(),rom,forta:document.getElementById('fe_forta').value.trim(),testeSpeciale:document.getElementById('fe_teste').value.trim(),palpare:document.getElementById('fe_palpare').value.trim(),functional:document.getElementById('fe_functional').value.trim(),durereAgraveaza:document.getElementById('fe_agraveaza').value.trim(),durereAmelioreaza:document.getElementById('fe_amelioreaza').value.trim(),diagnostic:document.getElementById('fe_diagnostic').value.trim(),obiective:document.getElementById('fe_obiective').value.trim(),planTratament:document.getElementById('fe_plan').value.trim()};
+  const p=getPatient(activePatientId);if(!p) return;
+  p.evaluari=p.evaluari||[];p.evaluari.push(ev);p.updatedAt=Date.now();
+  savePatientDB(p);
+  closeModal('evaluareModal');
+  const isFirst=(p.evaluari||[]).length===1;
+  toast('✅ '+(isFirst?'Evaluare inițială salvată':'Reevaluare salvată')+' — '+fmtDate(ev.data),'success');
+  renderView();
+}
+
+function deleteEvaluare(patientId,idx){
+  const p=getPatient(patientId);if(!p) return;
+  p.evaluari.splice(idx,1);p.updatedAt=Date.now();savePatientDB(p);
+  toast('🗑 Evaluare ștearsă','warn');renderView();
+}
+
+
+// ═══════════════════════════════════════════
+// EXERCITII — DATE
+// ═══════════════════════════════════════════
+const EXERCITII_PREDEFINITE = [
+  {id:'pre1',predefinit:true,nume:'Stretching ischiogambieri',zona:'Coapsă',tip:'Stretching',descriere:'Întindere mușchi posteriori ai coapsei, poziție șezând cu piciorul extins.',dozaj:'3 × 30s, bilateral',url:''},
+  {id:'pre2',predefinit:true,nume:'Stretching cvadriceps',zona:'Coapsă',tip:'Stretching',descriere:'Flexie genunchi în ortostatism cu prinderea gleznei.',dozaj:'3 × 30s, bilateral',url:''},
+  {id:'pre3',predefinit:true,nume:'Clam Shell',zona:'Șold',tip:'Forță',descriere:'Decubit lateral, genunchi flexați, rotație externă șold cu banda elastică.',dozaj:'3 × 15 rep, bilateral',url:''},
+  {id:'pre4',predefinit:true,nume:'Pont (Bridge)',zona:'Șold',tip:'Forță',descriere:'Decubit dorsal, genunchi flexați, ridicare bazin.',dozaj:'3 × 12 rep',url:''},
+  {id:'pre5',predefinit:true,nume:'Terminal Knee Extension',zona:'Genunchi',tip:'Forță',descriere:'Extensie terminală genunchi cu bandă elastică în ortostatism.',dozaj:'3 × 15 rep, bilateral',url:''},
+  {id:'pre6',predefinit:true,nume:'Step Up',zona:'Genunchi',tip:'Funcțional',descriere:'Urcat-coborât treaptă controlat, accent pe stabilizare.',dozaj:'3 × 10 rep, bilateral',url:''},
+  {id:'pre7',predefinit:true,nume:'Calf Raises',zona:'Gleznă',tip:'Forță',descriere:'Ridicare pe vârfuri în ortostatism, cu/fără sprijin.',dozaj:'3 × 20 rep',url:''},
+  {id:'pre8',predefinit:true,nume:'Propriocepție monopodalăostatic',zona:'Gleznă',tip:'Propriocepție',descriere:'Ortostatism unipodal pe suprafață stabilă/instabilă, ochi deschiși/închiși.',dozaj:'3 × 30s, bilateral',url:''},
+  {id:'pre9',predefinit:true,nume:'Rotație externă umăr cu bandă',zona:'Umăr',tip:'Forță',descriere:'Cotul lipit de trunchi, rotație externă cu bandă elastică.',dozaj:'3 × 15 rep, bilateral',url:''},
+  {id:'pre10',predefinit:true,nume:'Pendulum Codman',zona:'Umăr',tip:'Mobilizare',descriere:'Aplecat înainte, brațul pendulează liber în cercuri mici.',dozaj:'2 × 1 min, bilateral',url:''},
+  {id:'pre11',predefinit:true,nume:'Stretching trapez superior',zona:'Cervical',tip:'Stretching',descriere:'Flexie laterală cervicală cu ușoară presiune a mâinii.',dozaj:'3 × 30s, bilateral',url:''},
+  {id:'pre12',predefinit:true,nume:'Retracție cervicală (chin tuck)',zona:'Cervical',tip:'Stabilizare',descriere:'Retracție mentonului în plan orizontal, activare profundă.',dozaj:'3 × 10 rep × 5s hold',url:''},
+  {id:'pre13',predefinit:true,nume:'Cat-Cow',zona:'Coloană',tip:'Mobilizare',descriere:'Flexie-extensie coloană în 4 labe, ritm lent și controlat.',dozaj:'2 × 10 rep',url:''},
+  {id:'pre14',predefinit:true,nume:'Bird Dog',zona:'Coloană',tip:'Stabilizare',descriere:'Extensie alternativă braț-picior contralateral în 4 labe.',dozaj:'3 × 10 rep, alternativ',url:''},
+  {id:'pre15',predefinit:true,nume:'Planșă frontală',zona:'Coloană',tip:'Stabilizare',descriere:'Izometrie abdominală în sprijin pe antebrațe și vârfuri.',dozaj:'3 × 20-30s',url:''},
+  {id:'pre16',predefinit:true,nume:'Mobilizare gleznă cercuri',zona:'Gleznă',tip:'Mobilizare',descriere:'Rotații glezna în amplitudine maximă, activ sau cu ajutor.',dozaj:'2 × 10 rotații, bilateral',url:''},
+  {id:'pre17',predefinit:true,nume:'Extensie șold în decubit ventral',zona:'Șold',tip:'Forță',descriere:'Extensie activă a șoldului cu genunchiul extins sau flectat.',dozaj:'3 × 12 rep, bilateral',url:''},
+  {id:'pre18',predefinit:true,nume:'Squeeze adductori cu minge',zona:'Coapsă',tip:'Forță',descriere:'Compresie minge între genunchi în decubit dorsal sau șezând.',dozaj:'3 × 15 rep × 3s hold',url:''},
+  {id:'pre19',predefinit:true,nume:'Flexie plantară rezistivă',zona:'Gleznă',tip:'Forță',descriere:'Flexie plantară cu bandă elastică în poziție șezând.',dozaj:'3 × 15 rep, bilateral',url:''},
+  {id:'pre20',predefinit:true,nume:'Mers cu genunchi ridicat',zona:'Sold',tip:'Funcțional',descriere:'Mers cu accent pe ridicarea genunchiului, activare hip flexori.',dozaj:'3 × 10m',url:''},
+];
+
+const ZONE = ['Toate','Umăr','Cervical','Coloană','Coapsă','Șold','Genunchi','Gleznă','Alt'];
+const TIPURI = ['Toate','Stretching','Forță','Stabilizare','Mobilizare','Propriocepție','Funcțional','Cardio','Alt'];
+
+function getExercitii(){
+  const db=loadDB();
+  const custom=db.exercitii||[];
+  return [...EXERCITII_PREDEFINITE,...custom];
+}
+function getCustomExercitii(){return loadDB().exercitii||[]}
+function saveExercitiiDB(list){const db=loadDB();db.exercitii=list;saveDB(db)}
+
+let exFilterZona='Toate';
+let exFilterTip='Toate';
+let exSearch='';
+let editingExId=null;
+
+// ═══════════════════════════════════════════
+// RENDER: EXERCITII
+// ═══════════════════════════════════════════
+function renderExercitiiView(){
+  return `
+  <div class="section-header">
+    <div class="section-title">Biblioteca de exerciții</div>
+    <button class="btn btn-primary btn-sm" onclick="openNewExercitiu()">+ Exercițiu nou</button>
+  </div>
+  <div class="ex-filter-bar">
+    <div class="search-box" style="width:200px">
+      <span style="color:var(--text-muted);font-size:13px">🔍</span>
+      <input type="text" placeholder="Caută exercițiu..." value="${esc(exSearch)}" oninput="exSearch=this.value;rerenderEx()">
+    </div>
+    <select onchange="exFilterZona=this.value;rerenderEx()" style="width:140px;padding:7px 10px;font-size:13px">
+      ${ZONE.map(z=>`<option value="${z}" ${exFilterZona===z?'selected':''}>${z==='Toate'?'📍 Toate zonele':z}</option>`).join('')}
+    </select>
+    <select onchange="exFilterTip=this.value;rerenderEx()" style="width:150px;padding:7px 10px;font-size:13px">
+      ${TIPURI.map(t=>`<option value="${t}" ${exFilterTip===t?'selected':''}>${t==='Toate'?'🏷 Toate tipurile':t}</option>`).join('')}
+    </select>
+    <span style="font-size:12px;color:var(--text-muted);margin-left:auto" id="ex-count"></span>
+  </div>
+  <div id="ex-grid-wrap"></div>`;
+}
+
+function rerenderEx(){
+  const wrap=document.getElementById('ex-grid-wrap');
+  if(!wrap) return;
+  let list=getExercitii();
+  if(exSearch){const q=exSearch.toLowerCase();list=list.filter(e=>(e.nume||'').toLowerCase().includes(q)||(e.descriere||'').toLowerCase().includes(q)||(e.zona||'').toLowerCase().includes(q))}
+  if(exFilterZona!=='Toate') list=list.filter(e=>e.zona===exFilterZona);
+  if(exFilterTip!=='Toate') list=list.filter(e=>e.tip===exFilterTip);
+  const cnt=document.getElementById('ex-count');
+  if(cnt) cnt.textContent=list.length+' exerciții';
+  if(list.length===0){wrap.innerHTML=`<div class="empty-state"><div class="icon">🏃</div><p>Niciun exercițiu găsit.</p></div>`;return}
+  wrap.innerHTML=`<div class="ex-grid">${list.map(e=>`
+  <div class="ex-card">
+    ${e.predefinit?`<span class="ex-predefined">predefinit</span>`:''}
+    <div class="ex-card-header">
+      <div class="ex-name">${esc(e.nume)}</div>
+    </div>
+    <div class="ex-tags">
+      ${e.zona?`<span class="ex-tag ex-tag-zona">📍 ${esc(e.zona)}</span>`:''}
+      ${e.tip?`<span class="ex-tag ex-tag-tip">🏷 ${esc(e.tip)}</span>`:''}
+    </div>
+    ${e.descriere?`<div class="ex-desc">${esc(e.descriere)}</div>`:''}
+    ${e.dozaj?`<div class="ex-dozaj">⏱ ${esc(e.dozaj)}</div>`:''}
+    ${e.url?`<div class="ex-media"><a href="${esc(e.url)}" target="_blank" rel="noopener">▶ Video / imagine</a></div>`:''}
+    ${!e.predefinit?`<div class="ex-card-actions">
+      <button class="btn btn-secondary btn-xs" onclick="openEditExercitiu('${e.id}')">✏️ Editează</button>
+      <button class="btn btn-danger btn-xs" onclick="deleteExercitiu('${e.id}')">🗑</button>
+    </div>`:''}
+  </div>`).join('')}</div>`;
+}
+
+function openNewExercitiu(){
+  editingExId=null;
+  document.getElementById('exercitiuModalTitle').textContent='Exercițiu nou';
+  document.getElementById('exercitiuModalBody').innerHTML=exercitiuForm({});
+  openModal('exercitiuModal');
+}
+
+function openEditExercitiu(id){
+  const e=getCustomExercitii().find(x=>x.id===id);
+  if(!e) return;
+  editingExId=id;
+  document.getElementById('exercitiuModalTitle').textContent='Editează exercițiu';
+  document.getElementById('exercitiuModalBody').innerHTML=exercitiuForm(e);
+  openModal('exercitiuModal');
+}
+
+function exercitiuForm(e){
+  return `
+  <div class="form-section">
+    <div class="form-section-title">Detalii exercițiu</div>
+    <div class="form-grid cols-1">
+      <div class="form-group"><label>Nume exercițiu *</label><input type="text" id="ex_nume" value="${esc(e.nume||'')}" placeholder="ex: Stretching ischiogambieri"></div>
+      <div class="form-grid">
+        <div class="form-group"><label>Zonă corporală</label>
+          <select id="ex_zona"><option value="">— selectează —</option>${ZONE.slice(1).map(z=>`<option value="${z}" ${e.zona===z?'selected':''}>${z}</option>`).join('')}</select>
+        </div>
+        <div class="form-group"><label>Tip exercițiu</label>
+          <select id="ex_tip"><option value="">— selectează —</option>${TIPURI.slice(1).map(t=>`<option value="${t}" ${e.tip===t?'selected':''}>${t}</option>`).join('')}</select>
+        </div>
+      </div>
+      <div class="form-group"><label>Descriere / instrucțiuni</label><textarea id="ex_desc" rows="3" placeholder="Descriere tehnică, poziție de start, execuție...">${esc(e.descriere||'')}</textarea></div>
+      <div class="form-group"><label>Dozaj implicit</label><input type="text" id="ex_dozaj" value="${esc(e.dozaj||'')}" placeholder="ex: 3 × 15 rep, bilateral"></div>
+      <div class="form-group"><label>Link video / imagine (URL)</label><input type="url" id="ex_url" value="${esc(e.url||'')}" placeholder="https://youtube.com/..."></div>
+    </div>
+  </div>`;
+}
+
+function saveExercitiu(){
+  const numeEl=document.getElementById('ex_nume');
+  if(!numeEl?.value.trim()){toast('⚠️ Numele exercițiului este obligatoriu','warn');return}
+  const e={
+    id:editingExId||uid(),
+    predefinit:false,
+    nume:numeEl.value.trim(),
+    zona:document.getElementById('ex_zona').value,
+    tip:document.getElementById('ex_tip').value,
+    descriere:document.getElementById('ex_desc').value.trim(),
+    dozaj:document.getElementById('ex_dozaj').value.trim(),
+    url:document.getElementById('ex_url').value.trim(),
+  };
+  const list=getCustomExercitii();
+  const idx=list.findIndex(x=>x.id===e.id);
+  if(idx>=0) list[idx]=e; else list.push(e);
+  saveExercitiiDB(list);
+  closeModal('exercitiuModal');
+  toast(editingExId?'✅ Exercițiu actualizat':'✅ Exercițiu adăugat în bibliotecă','success');
+  editingExId=null;
+  rerenderEx();
+}
+
+function deleteExercitiu(id){
+  const list=getCustomExercitii().filter(x=>x.id!==id);
+  saveExercitiiDB(list);
+  toast('🗑 Exercițiu șters din bibliotecă','warn');
+  rerenderEx();
+}
+
+// ═══════════════════════════════════════════
+// PROGRAMARI — DATE
+// ═══════════════════════════════════════════
+function getProgramari(){return loadDB().programari||[]}
+function saveProgramariDB(list){const db=loadDB();db.programari=list;saveDB(db)}
+
+const ORE=['08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00'];
+const ZILE_SCURT=['Lu','Ma','Mi','Jo','Vi','Sâ','Du'];
+const ZILE_LUNG=['Luni','Marți','Miercuri','Joi','Vineri','Sâmbătă','Duminică'];
+
+let calWeekOffset=0;
+let editingProgId=null;
+
+function getWeekDates(offset=0){
+  const now=new Date();
+  const day=now.getDay();
+  const diff=day===0?-6:1-day;
+  const monday=new Date(now);
+  monday.setDate(now.getDate()+diff+offset*7);
+  return Array.from({length:7},(_,i)=>{
+    const d=new Date(monday);d.setDate(monday.getDate()+i);return d;
+  });
+}
+
+function dateKey(d){return d.toISOString().slice(0,10)}
+function isToday(d){return dateKey(d)===todayStr()}
+
+// ═══════════════════════════════════════════
+// RENDER: CALENDAR
+// ═══════════════════════════════════════════
+function renderProgramariView(){
+  const days=getWeekDates(calWeekOffset);
+  const prog=getProgramari();
+  const pts=getPatients();
+
+  const weekStart=days[0];
+  const weekEnd=days[6];
+  const weekTitle=weekStart.toLocaleDateString('ro-RO',{day:'numeric',month:'short'})+' – '+weekEnd.toLocaleDateString('ro-RO',{day:'numeric',month:'short',year:'numeric'});
+
+  // Statistici săptămână
+  const progSaptamana=prog.filter(p=>{
+    const d=new Date(p.data);return d>=weekStart&&d<=weekEnd;
+  });
+  const confirmate=progSaptamana.filter(p=>p.status==='confirmat').length;
+  const anulate=progSaptamana.filter(p=>p.status==='anulat').length;
+
+  // Build calendar cells
+  let bodyRows='';
+  ORE.forEach(ora=>{
+    bodyRows+=`<div class="cal-time-cell">${ora}</div>`;
+    days.forEach(day=>{
+      const key=dateKey(day);
+      const progZi=prog.filter(p=>p.data===key&&p.ora===ora);
+      const chips=progZi.map(p=>{
+        const pacient=pts.find(x=>x.id===p.pacientId);
+        const numePacient=pacient?pacient.nume.split(' ')[0]:'—';
+        return `<span class="prog-chip status-${p.status||'programat'}" onclick="openEditProgramare('${p.id}')" title="${esc(pacient?.nume||'')} · ${esc(p.tipSedinta||'')} · ${esc(p.status||'programat')}">${esc(numePacient)}${p.tipSedinta?' · '+esc(p.tipSedinta.slice(0,8)):''}</span>`;
+      }).join('');
+      bodyRows+=`<div class="cal-cell${isToday(day)?' today-col':''}" onclick="openNewProgramareAtSlot('${key}','${ora}')">${chips}</div>`;
+    });
+  });
+
+  return `
+  <div class="section-header">
+    <div class="section-title">Programări</div>
+    <button class="btn btn-primary btn-sm" onclick="openNewProgramare()">+ Programare nouă</button>
+  </div>
+
+  <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+    <div class="stat-card" style="flex:1;min-width:120px;padding:13px 16px">
+      <div class="stat-label">Săptămâna</div>
+      <div style="font-size:13px;font-weight:600;margin-top:3px">${progSaptamana.length} programări</div>
+    </div>
+    <div class="stat-card" style="flex:1;min-width:120px;padding:13px 16px">
+      <div class="stat-label">Confirmate</div>
+      <div style="font-size:13px;font-weight:600;color:#1A7A3A;margin-top:3px">${confirmate}</div>
+    </div>
+    <div class="stat-card" style="flex:1;min-width:120px;padding:13px 16px">
+      <div class="stat-label">Anulate</div>
+      <div style="font-size:13px;font-weight:600;color:var(--warn);margin-top:3px">${anulate}</div>
+    </div>
+  </div>
+
+  <div class="cal-wrap">
+    <div class="cal-header">
+      <div class="cal-nav">
+        <button class="btn btn-secondary btn-sm" onclick="calWeekOffset--;rerenderCal()">‹ Anterior</button>
+        <div class="cal-week-title">${weekTitle}</div>
+        <button class="btn btn-secondary btn-sm" onclick="calWeekOffset++;rerenderCal()">Următor ›</button>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="calWeekOffset=0;rerenderCal()">Azi</button>
+    </div>
+
+    <div style="overflow-x:auto">
+      <div style="min-width:600px">
+        <div class="cal-grid">
+          <div class="cal-day-header" style="background:var(--bg)"></div>
+          ${days.map((d,i)=>`<div class="cal-day-header${isToday(d)?' today':''}">${ZILE_SCURT[i]}<br><span style="font-size:13px;font-weight:${isToday(d)?'700':'400'}">${d.getDate()}</span></div>`).join('')}
+        </div>
+        <div class="cal-body" style="display:grid;grid-template-columns:60px repeat(7,1fr)">
+          ${bodyRows}
+        </div>
+      </div>
+    </div>
+
+    <div class="cal-legend">
+      <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--accent-bg);border:1px solid var(--accent)"></div> Programat</div>
+      <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#E0F5E8;border:1px solid #2A8A4A"></div> Confirmat</div>
+      <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#F0F0F0;border:1px solid #AAA"></div> Anulat</div>
+      <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#E8F0FF;border:1px solid #2A4A9A"></div> Efectuat</div>
+    </div>
+  </div>`;
+}
+
+function rerenderCal(){
+  if(currentView==='programari') renderView();
+}
+
+function openNewProgramare(){openProgramareModal({})}
+function openNewProgramareAtSlot(data,ora){openProgramareModal({data,ora})}
+function openEditProgramare(id){
+  const p=getProgramari().find(x=>x.id===id);
+  if(!p) return;
+  editingProgId=id;
+  openProgramareModal(p);
+}
+
+function openProgramareModal(p){
+  editingProgId=p.id||null;
+  document.getElementById('programareModalTitle').textContent=editingProgId?'Editează programare':'Programare nouă';
+  document.getElementById('programareModalBody').innerHTML=programareForm(p);
+  openModal('programareModal');
+}
+
+function programareForm(p){
+  const pts=getPatients().filter(x=>(x.status||'activ')==='activ');
+  const statusuri=[['programat','Programat'],['confirmat','Confirmat'],['efectuat','Efectuat'],['anulat','Anulat']];
+  return `
+  <div class="form-section">
+    <div class="form-section-title">Detalii programare</div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Pacient *</label>
+        <select id="pr_pacient">
+          <option value="">— selectează pacient —</option>
+          ${pts.map(x=>`<option value="${x.id}" ${p.pacientId===x.id?'selected':''}>${esc(x.nume)}${x.diagnosticMedical?' · '+esc(x.diagnosticMedical.slice(0,30)):''}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Data *</label>
+        <input type="date" id="pr_data" value="${esc(p.data||todayStr())}">
+      </div>
+      <div class="form-group">
+        <label>Ora *</label>
+        <select id="pr_ora">
+          ${ORE.map(o=>`<option value="${o}" ${(p.ora||'09:00')===o?'selected':''}>${o}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Durata (minute)</label>
+        <select id="pr_durata">
+          ${[30,45,60,90,120].map(d=>`<option value="${d}" ${(p.durata||60)===d?'selected':''}>${d} min</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Tip ședință</label>
+        <select id="pr_tip">
+          ${['Kinetoterapie','Fizioterapie','Masaj','Evaluare','Reevaluare','Alt'].map(t=>`<option value="${t}" ${p.tipSedinta===t?'selected':''}>${t}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="pr_status">
+          ${statusuri.map(([v,l])=>`<option value="${v}" ${(p.status||'programat')===v?'selected':''}>${l}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>Observații</label>
+        <input type="text" id="pr_obs" value="${esc(p.observatii||'')}" placeholder="ex: prima ședință, adus RMN...">
+      </div>
+    </div>
+  </div>
+  ${editingProgId?`<div style="margin-top:4px"><button class="btn btn-warn btn-sm" onclick="anuleazaProgramare('${editingProgId}')">🚫 Marchează anulat</button></div>`:''}`;
+}
+
+function saveProgramare(){
+  const pacEl=document.getElementById('pr_pacient');
+  const dataEl=document.getElementById('pr_data');
+  if(!pacEl?.value){toast('⚠️ Selectează un pacient','warn');return}
+  if(!dataEl?.value){toast('⚠️ Data este obligatorie','warn');return}
+  const p={
+    id:editingProgId||uid(),
+    pacientId:pacEl.value,
+    data:dataEl.value,
+    ora:document.getElementById('pr_ora').value,
+    durata:parseInt(document.getElementById('pr_durata').value),
+    tipSedinta:document.getElementById('pr_tip').value,
+    status:document.getElementById('pr_status').value,
+    observatii:document.getElementById('pr_obs').value.trim(),
+  };
+  const list=getProgramari();
+  const idx=list.findIndex(x=>x.id===p.id);
+  if(idx>=0) list[idx]=p; else list.push(p);
+  saveProgramariDB(list);
+  closeModal('programareModal');
+  const pac=getPatient(p.pacientId);
+  toast((editingProgId?'✅ Programare actualizată':'✅ Programare adăugată')+(pac?' — '+pac.nume:''),'success');
+  editingProgId=null;
+  rerenderCal();
+}
+
+function anuleazaProgramare(id){
+  const list=getProgramari();
+  const idx=list.findIndex(x=>x.id===id);
+  if(idx>=0){list[idx].status='anulat';saveProgramariDB(list)}
+  closeModal('programareModal');
+  toast('🚫 Programare marcată ca anulată','warn');
+  rerenderCal();
+}
+
+function renderComingSoon(v){
+  return `<div class="coming-soon"><div class="icon">🚧</div><h2>${v}</h2><p>În curând.</p><button class="btn btn-secondary" style="margin-top:16px" onclick="showView('dashboard')">← Dashboard</button></div>`;
+}
+
+// ═══════════════════════════════════════════
+// MODAL HELPERS
+// ═══════════════════════════════════════════
+function openModal(id){document.getElementById(id).classList.add('open');document.body.style.overflow='hidden'}
+function closeModal(id){document.getElementById(id).classList.remove('open');document.body.style.overflow=''}
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o) closeModal(o.id)}));
+
+// ═══════════════════════════════════════════
+// SIDEBAR
+// ═══════════════════════════════════════════
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebarOverlay').classList.toggle('open')}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebarOverlay').classList.remove('open')}
+
+// ═══════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════
+function toast(msg,type='info'){
+  const w=document.getElementById('toastWrap');
+  const el=document.createElement('div');
+  el.className='toast toast-'+(type==='success'?'success':type==='warn'?'warn':type==='error'?'error':'info');
+  el.textContent=msg;
+  w.appendChild(el);
+  setTimeout(()=>{el.style.transition='opacity .3s';el.style.opacity='0';setTimeout(()=>el.remove(),320)},3500);
+}
+
+// ═══════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function statusLabel(s){return{activ:'Activ',pauza:'Pauză',intrerupt:'Întrerupt',terminat:'Terminat'}[s]||'Activ'}
+function todayStr(){return new Date().toISOString().slice(0,10)}
+function fmtDate(d){if(!d) return '—';try{return new Date(d).toLocaleDateString('ro-RO',{day:'2-digit',month:'short',year:'numeric'})}catch{return d}}
+function vasToColor(v){if(v==null||v==='') return 'var(--text-muted)';v=parseInt(v);if(v<=3) return '#1A7A3A';if(v<=6) return '#B07A14';return '#C02020'}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+// Înregistrare Service Worker (PWA)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/kinetotrack/sw.js')
+      .then(() => console.log('SW înregistrat'))
+      .catch(err => console.warn('SW error:', err));
+  });
+}
+
+onDBReady(() => showView('dashboard'));
+</script>
+</body>
+</html>
